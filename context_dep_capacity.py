@@ -14,11 +14,8 @@ import scipy as sp
 from scipy.optimize import linprog
 from scipy.special import comb
 from scipy.special import binom
-from cvxopt import matrix, solvers
 import itertools
-import pulp
 from matplotlib.lines import Line2D
-
 
 def theoretical_pcrit(k):
     """

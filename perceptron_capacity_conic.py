@@ -9,8 +9,9 @@ import numpy as np
 from numpy import linalg as LA
 import scipy as sp
 from scipy.optimize import linprog
-from cvxopt import matrix, solvers
-import pulp
+#import cvoxpt
+#from cvxopt import matrix, solvers
+#import pulp
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 
