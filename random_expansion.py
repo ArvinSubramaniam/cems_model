@@ -40,9 +40,9 @@ def generate_pattern_context2(stim,cont):
     return mat 
 
 
-def random_project_hidden_layer(N,M,P,K,H,sc=1,sp=1):
+def random_project_hidden_layer(stim,cont,H,sc=1,sp=1):
     """
-    Creates contextual inputs and randomly projects them onto hidden layer.
+    Takes in contextual inputs and randomly projects them onto hidden layer.
     Draw matrices RANDOMLY FOR EACH P AND K
     Gets dimensionality via the rank of h
     
@@ -52,8 +52,8 @@ def random_project_hidden_layer(N,M,P,K,H,sc=1,sp=1):
         sc: Variance in context projection
     """
     h = np.zeros((H,P*K))
-    stim = make_patterns(N,P)
-    cont = make_patterns(M,K)
+#    stim = make_patterns(N,P)
+#    cont = make_patterns(M,K)
     
     #matc = np.random.normal(0,sc/M,(int(H/2),M))
     #matp = np.random.normal(0,sp/N,(int(H/2),N))
@@ -106,6 +106,145 @@ def output_mixed_layer(h,thres=0.):
     
     return g, cod, cod_std
 
+def random_proj_generic(H,patt):
+    """
+    Perform generic random projection with a H x N matrix
+    """
+    N = patt.shape[0]
+    h = np.zeros((H,patt.shape[1]))
+    for p in range(patt.shape[1]):
+        wrand = np.random.normal(0,1/N,(H,N))
+        h[:,p] = np.matmul(wrand,patt[:,p])
+        
+    return h
+    
+
+
+###CHECK CLASSIFICATION FOR GENERIC CORRELATED STIMULI
+def make_patterns_corr(N,P,fcorr=0.7,cod=0.5):
+    """
+    fcorr: Underlying rank
+    """
+    ind_rem = random.sample(range(P), int((1-fcorr)*P))
+    #print("indices",ind_rem)
+    print("rank should be",int(fcorr*P))
+    
+    patterns_red = np.zeros((N,P))
+    
+    #Make a repeated pattern vector
+    vec = generate_pm_with_coding(N,cod)
+    #Loop over distinct pairs of (remove,replace)
+    s1 = set(np.linspace(0,P-1,P))
+    #print("set1",s1)
+    s2 = set(ind_rem)
+    #print("set2",s2)
+    sdiff = s1.difference(s2)
+    #print("set diff",sdiff)
+    ind_others0 = list(sdiff)
+    ind_others = [int(l) for l in ind_others0]
+    
+    for i in ind_others:
+        patterns_red[:,i] = generate_pm_with_coding(N,f=cod)
+        
+    for i in ind_rem:
+        patterns_red[:,i] = vec
+     
+    print("rank reduced",LA.matrix_rank(patterns_red))
+    
+    return patterns_red
+
+
+###RANK OF MIXED LAYER FOR CONT-STIM VS. NORMAL STIM
+#N=100
+#M=100
+#P=80
+#K=2
+##H_list = np.linspace(50,210,9) #NEED TO KEEP H even
+#H_list = np.linspace(20,180,17) #NEED TO KEEP H even
+#c = 0.5
+#patt = make_patterns(N,P)
+#patt_corr = make_patterns_corr(N,P,fcorr=c)
+#stim = make_patterns(N,P)
+#cont = make_patterns(M,K)
+#patt_c = generate_pattern_context2(stim,cont)
+#
+#dimh_patt = []
+#dimo_patt = []
+#dimh_patt_c = []
+#dimo_patt_c = []
+#for i,H_in in enumerate(H_list):
+#    H = int(H_in)
+#    h = np.zeros((H,P))
+#    out = np.zeros((H,P))
+#    for i in range(P):
+#        wrand = np.random.normal(0,1/N,(H,N))
+#        h[:,i] = np.matmul(wrand,patt_corr[:,i])
+#        out[:,i] = np.sign(h[:,i])
+#    
+#    
+#    h2, dim = random_project_hidden_layer(stim,cont,H)
+#    out2,cod1,cod2 = output_mixed_layer(h2)
+#    
+#    dimh_patt.append(LA.matrix_rank(h))
+#    dimo_patt.append(LA.matrix_rank(out))
+#    dimh_patt_c.append(LA.matrix_rank(h2))
+#    dimo_patt_c.append(LA.matrix_rank(out2))
+#
+#
+#plt.figure()
+#plt.title(r'Dimensionality vs. $N_m$,$N={}$,$M={}$,$P={}$,$K={}$'.format(N,M,P,K))
+#plt.plot(H_list,dimh_patt,'s-',label=r'$h_{\xi}, (generic, rank = 40)$ ')
+#plt.plot(H_list,dimo_patt,'o-',label=r'$o_{\xi} (generic, rank = 40)$ ')
+#plt.plot(H_list,dimh_patt_c,'^--',label=r'$h_{\bar{\xi}} (context-stim, rank = 81)$')
+#plt.plot(H_list,dimo_patt_c,'*--',label=r'$o_{\bar{\xi}} (context-stim, rank = 81)$')
+#plt.xlabel(r'$N_m$',fontsize=18)
+#plt.ylabel(r'Dimensionality')
+#plt.legend()
+#plt.show()
+
+
+
+###CHECK CLASSIFICATION FOR EACH LAYER
+##RANDOM CORR
+#N=100
+#P=80
+#c = 0.5
+#patt = make_patterns(N,P)
+#patt_corr = make_patterns_corr(N,P,fcorr=c)
+#print("rank of correlated stim",LA.matrix_rank(patt_corr))
+#H = 40
+#h = np.zeros((H,P))
+#out = np.zeros((H,P))
+#for i in range(P):
+#    wrand = np.random.normal(0,1/N,(H,N))
+#    h[:,i] = np.matmul(wrand,patt_corr[:,i])
+#    out[:,i] = np.sign(h[:,i])  
+#
+#print("rank of mixed layer",LA.matrix_rank(h))    
+#w1,s1 = perceptron_storage(h)
+#print("success",s1)
+
+##CONTEXT-STIM
+#N=100
+#M=100
+#P=10
+#K=10
+#H=60
+#stim = make_patterns(N,P)
+#cont = make_patterns(M,K)
+#patt_c = generate_pattern_context2(stim,cont)
+#print("dim stim",LA.matrix_rank(patt_c))
+#print("alpha",(P*K/(N+M)))
+##print("beta",P/N)
+#h, dim = random_project_hidden_layer(stim,cont,H)
+#w1,s1 = perceptron_storage(h)
+#print("storage of linear projection",s1)
+#print("dim activations",LA.matrix_rank(h))
+#out, cod, cod_std = output_mixed_layer(h)
+#w2,s2 = perceptron_storage(out)
+#print("storage of non-linear projection",s2)
+
+
     
 
 def compute_participation_ratio(h_in):
@@ -156,21 +295,7 @@ def similarity_measure(x,y):
     
     return dist
 
-N=500
-M=500
-P=10
-K=10
-H=100
-stim = make_patterns(N,P)
-cont = make_patterns(M,K)
-patt_c = generate_pattern_context2(stim,cont)
-print("dim stim",LA.matrix_rank(patt_c))
-h, dim = random_project_hidden_layer(N,M,P,K,H)
-print("dim activations",LA.matrix_rank(h))
-out, cod, cod_std = output_mixed_layer(h)
-print("dim outputs",LA.matrix_rank(out))
-
-
+###MEASURE SIMILARITY BETWEEN SUCCESSIVE LAYERS
 #N=500
 #M=500
 #P=10
@@ -193,7 +318,7 @@ print("dim outputs",LA.matrix_rank(out))
 #        stim = make_patterns(N,P)
 #        cont = make_patterns(M,K)
 #        patt_c = generate_pattern_context2(stim,cont)
-#        h, dim = random_project_hidden_layer(N,M,P,K,H)
+#        h, dim = random_project_hidden_layer(stim,cont,H)
 #        out, cod, cod_std = output_mixed_layer(h)
 #        dists1.append(similarity_measure(patt_c,h))
 #        dists2.append(similarity_measure(h,out))
@@ -249,7 +374,7 @@ def mutual_info(x,y):
 #for i,r in enumerate(ratios):
 #    for j,t in enumerate(thress):
 #        H = int(r*N)
-#        h, dim = random_project_hidden_layer(N,M,P,K,H)
+#        h, dim = random_project_hidden_layer(stim,cont,H)
 #        print("input dimensionality",dim)
 #        out, cod, cod_std = output_mixed_layer(h,thres=t)
 #        print("output dimensionality",LA.matrix_rank(out))
@@ -283,7 +408,7 @@ def mutual_info(x,y):
 #codings = []
 #outs = {}
 #H=2*N
-#h, dim = random_project_hidden_layer(N,M,P,K,H)
+#h, dim = random_project_hidden_layer(stim,cont,H)
 #for i,t in enumerate(thetas):
 #    out, cod, cod_std = output_mixed_layer(h,thres=t)
 #    outs[i] = out
@@ -358,7 +483,6 @@ def func_evaluate_capacity_mixed(K,ratio_list):
     plt.legend(fontsize=12)
     #plt.savefig(r'{}/capacity_curve_errorbars_K={}.png'.format(path,K))
     plt.show()
-
 
 
 
