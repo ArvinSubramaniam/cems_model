@@ -428,7 +428,8 @@ def mutual_info(x,y):
 
 
 
-def func_evaluate_capacity_mixed(K,ratio_list):
+
+def func_evaluate_capacity_mixed(ratio,K_list):
     """
     Capacity as a funciton of expansion ratio
     """
@@ -438,22 +439,22 @@ def func_evaluate_capacity_mixed(K,ratio_list):
     #len_P = 10
     len_P = 15 #For K > 1
     n_real = 5
-    sucss_matrix = np.zeros((len(ratio_list),len_P))
-    sucss_dev = np.zeros((len(ratio_list),len_P))
+    sucss_matrix = np.zeros((len(K_list),len_P))
+    sucss_dev = np.zeros((len(K_list),len_P))
     P_list = np.linspace(0.2*N,3.5*N,len_P)
     #P_list = np.linspace(1,15,15) #For K > 1
-    rank_mixed_layer = np.zeros(len(ratio_list))
-    for i,r in enumerate(ratio_list):
-        print("ratio",r)
-        H = int(r*N)
+    rank_mixed_layer = np.zeros((len(K_list),len_P))
+    print("ratio",ratio)
+    H = int(ratio*(N+M))
+    for i,K in enumerate(K_list):
         for j,P in enumerate(P_list):
             sucs = []
             for n in range(n_real):
                 patt = make_patterns(N,int(P))
                 h, dim = random_project_hidden_layer(N,M,int(P),K,H,sc=1,sp=1)
                 out, cod ,codpm = output_mixed_layer(h)
-                rank_mixed_layer[i] = (1/N)*LA.matrix_rank(out) 
-                print("scaled rank of mixed layer",rank_mixed_layer[i])
+                rank_mixed_layer[i,j] = (1/(N+M))*LA.matrix_rank(h) ###USE LINEAR PROEJCTION
+                print("scaled rank of mixed layer",rank_mixed_layer[i,j])
                 #rank_mixed_layer[i] = LA.matrix_rank(out)
                 w, status = perceptron_storage(out)
                 if status == 0:
@@ -464,24 +465,33 @@ def func_evaluate_capacity_mixed(K,ratio_list):
             sucss_matrix[i,j] = np.mean(sucs)
             sucss_dev[i,j] = np.std(sucs)
 
-    plt.figure()
-    plt.title(r'Capacity, K={},N={}'.format(K,N),fontsize=16)
-    for i,r in enumerate(ratio_list):
+    fig = plt.figure()
+    plt.suptitle(r'$\mathcal{R}=1$')
+    ax = fig.add_subplot(121)
+    ax.set_title(r'Capacity,N={},K={}'.format(N,K),fontsize=16)
+    for i,K in enumerate(K_list):
         ind_up = np.where(sucss_matrix[i,:] + sucss_dev[i,:] >= 1.)[0] #Check if it's too high
         sucss_dev[i,ind_up] = np.ones(len(ind_up)) - sucss_matrix[i,ind_up]
         
         ind_down = np.where(sucss_matrix[i,:] - sucss_dev[i,:] <= 0.)[0]#Check if it's too low
         sucss_dev[i,ind_down] = sucss_matrix[i,ind_down]
         
-        plt.errorbar((1/N)*P_list,sucss_matrix[i,:],yerr=sucss_dev[i,:],marker='s',linestyle='-', capsize=5, markeredgewidth=2,
-                     label=r'$N_m={}$'.format(int(r*N)))
-        plt.axvline(x=2*rank_mixed_layer[i]/(K),linestyle='dashdot',color='r',label=r'$P_c = 2/K \times c$')
-    plt.axhline(y=0.5,linestyle='--',label='Prob. = 0.5')
+        ax.errorbar((1/N)*P_list,sucss_matrix[i,:],yerr=sucss_dev[i,:],marker='s',linestyle='-', capsize=5, markeredgewidth=2,
+                     label=r'$K={}$'.format(K))
+        ax.axvline(x=2*rank_mixed_layer[i]/(K),linestyle='dashdot',color='r',label=r'$P_c = 2/K \times c$')
+    ax.axhline(y=0.5,linestyle='--',label='Prob. = 0.5')
     #plt.xlabel(r'$P$',fontsize=14)
-    plt.xlabel(r'$\beta$',fontsize=14)
-    plt.ylabel('Prob of success',fontsize=14)
-    plt.legend(fontsize=12)
+    ax.set_xlabel(r'$\beta$',fontsize=14)
+    ax.set_ylabel('Prob of success',fontsize=14)
+    ax.legend(fontsize=12)
     #plt.savefig(r'{}/capacity_curve_errorbars_K={}.png'.format(path,K))
+    
+    ax2 = fig.add_subplot(122)
+    ax2.set_title(r'$raank(h^T h)$ vs. $P$. $K={}$'.format(K))
+    for i,K in enumerate(K_list):
+        ax2.plot((1/N)*P_list,rank_mixed_layer[i,:],marker='o',capsize=8)
+    ax2.set_xlabel(r'$\beta$',fontsize=14)
+    ax2.set_ylabel('$rank(h^T h)',fontsize=14)
     plt.show()
 
 
