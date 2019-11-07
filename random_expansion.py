@@ -522,8 +522,59 @@ def func_evaluate_capacity_mixed(ratio,K_list):
     ax2.legend(fontsize=12)
     plt.show()
 
-ratio=1
-K_list = [2]
-func_evaluate_capacity_mixed(ratio,K_list)
 
 
+###EIGENVALUES SPECTRA OF LINEAR VS NON-LINER ACTIVATION LAYER
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+N=100
+M=100
+P=80
+K=2
+H=100
+stim = make_patterns(N,int(P))
+cont = make_patterns(M,K)
+patt_c = generate_pattern_context2(stim,cont)
+cov1 = (1/patt_c.shape[1])*np.matmul(patt_c,patt_c.T)
+u1,d1,v1 = LA.svd(patt_c)
+h, dim = random_project_hidden_layer(stim,cont,H,sc=1,sp=1)
+cov2 = (1/h.shape[1])*np.matmul(h,h.T)
+u2,d2,v2 = LA.svd(h)
+out, cod ,codpm = output_mixed_layer(h)
+cov3 = (1/out.shape[1])*np.matmul(out,out.T)
+u3,d3,v3 = LA.svd(out)
+
+#fig = plt.figure(2)
+#ax = fig.add_subplot(121)
+#img1 = ax.imshow(h)
+#ax2 = fig.add_subplot(122)
+#img2 = ax2.imshow(out)
+#fig.colorbar(img2)
+#plt.show()
+
+
+
+
+
+fig = plt.figure(1)
+plt.suptitle(r'Eigenvalue spectra',fontsize=14)
+ax = fig.add_subplot(131)
+ax.set_title(r'$\bar{\xi}$')
+ax.hist(LA.eigvals(cov1))
+axins = inset_axes(ax,width="50%", height="60%", loc=1)
+img1 = axins.imshow(patt_c)
+
+ax2 = fig.add_subplot(132)
+ax2.set_title(r'$h$')
+ax2.hist(LA.eigvals(cov2))
+axins2 = inset_axes(ax2,width="50%", height="60%", loc=1)
+img2 = axins2.imshow(h)
+
+ax3 = fig.add_subplot(133)
+ax3.set_title(r'$o$')
+ax3.hist(LA.eigvals(cov3))
+axins3 = inset_axes(ax3,width="50%", height="60%", loc=1)
+img3 = axins3.imshow(out)
+
+fig.colorbar(img1,ax=ax3)
+
+plt.show()
