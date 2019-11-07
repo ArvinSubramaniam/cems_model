@@ -434,7 +434,8 @@ def mutual_info(x,y):
 
 def func_evaluate_capacity_mixed(ratio,K_list):
     """
-    Capacity as a funciton of expansion ratio
+    Capacity as a funciton of expansion ratio.
+    At the moment for linear vs. non-linear
     """
     N = 100
     M=N
@@ -446,12 +447,14 @@ def func_evaluate_capacity_mixed(ratio,K_list):
     sucss_dev = np.zeros((len(K_list),len_P))
     sucss_matrix2 = np.zeros((len(K_list),len_P))  #Of non-linear outputs
     sucss_dev2 = np.zeros((len(K_list),len_P))
-    P_list = np.linspace(0.2*N,3.5*N,len_P)
+#    P_list = np.linspace(0.2*N,2.0*N,len_P)
     #P_list = np.linspace(1,15,15) #For K > 1
     rank_mixed_layer = np.zeros((len(K_list),len_P))
     print("ratio",ratio)
     H = int(ratio*N)
     for i,K in enumerate(K_list):
+        beta_max = 4*ratio/K
+        P_list = np.linspace(0.2*N,beta_max*N,len_P)
         for j,P in enumerate(P_list):
             sucs = []
             sucs2 = []
@@ -524,57 +527,150 @@ def func_evaluate_capacity_mixed(ratio,K_list):
 
 
 
-###EIGENVALUES SPECTRA OF LINEAR VS NON-LINER ACTIVATION LAYER
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-N=100
-M=100
-P=80
-K=2
-H=100
-stim = make_patterns(N,int(P))
-cont = make_patterns(M,K)
-patt_c = generate_pattern_context2(stim,cont)
-cov1 = (1/patt_c.shape[1])*np.matmul(patt_c,patt_c.T)
-u1,d1,v1 = LA.svd(patt_c)
-h, dim = random_project_hidden_layer(stim,cont,H,sc=1,sp=1)
-cov2 = (1/h.shape[1])*np.matmul(h,h.T)
-u2,d2,v2 = LA.svd(h)
-out, cod ,codpm = output_mixed_layer(h)
-cov3 = (1/out.shape[1])*np.matmul(out,out.T)
-u3,d3,v3 = LA.svd(out)
-
-#fig = plt.figure(2)
-#ax = fig.add_subplot(121)
-#img1 = ax.imshow(h)
-#ax2 = fig.add_subplot(122)
-#img2 = ax2.imshow(out)
-#fig.colorbar(img2)
+###COMARE EIGENVALUE SPECTRA OF LINEAR VS NON-LINER ACTIVATION LAYER
+#from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+#N=100
+#M=100
+#P=80
+#K=2
+#H=100
+#stim = make_patterns(N,int(P))
+#cont = make_patterns(M,K)
+#patt_c = generate_pattern_context2(stim,cont)
+#cov1 = (1/patt_c.shape[1])*np.matmul(patt_c,patt_c.T)
+#u1,d1,v1 = LA.svd(patt_c)
+#h, dim = random_project_hidden_layer(stim,cont,H,sc=1,sp=1)
+#cov2 = (1/h.shape[1])*np.matmul(h,h.T)
+#u2,d2,v2 = LA.svd(h)
+#out, cod ,codpm = output_mixed_layer(h)
+#cov3 = (1/out.shape[1])*np.matmul(out,out.T)
+#u3,d3,v3 = LA.svd(out)
+#
+#
+#fig = plt.figure(1)
+#plt.suptitle(r'Eigenvalue spectra',fontsize=14)
+#ax = fig.add_subplot(131)
+#ax.set_title(r'$\bar{\xi}$')
+#ax.hist(LA.eigvals(cov1))
+#axins = inset_axes(ax,width="50%", height="60%", loc=1)
+#img1 = axins.imshow(patt_c)
+#
+#ax2 = fig.add_subplot(132)
+#ax2.set_title(r'$h$')
+#ax2.hist(LA.eigvals(cov2))
+#axins2 = inset_axes(ax2,width="50%", height="60%", loc=1)
+#img2 = axins2.imshow(h)
+#
+#ax3 = fig.add_subplot(133)
+#ax3.set_title(r'$o$')
+#ax3.hist(LA.eigvals(cov3))
+#axins3 = inset_axes(ax3,width="50%", height="60%", loc=1)
+#img3 = axins3.imshow(out)
+#
+#fig.colorbar(img1,ax=ax3)
+#
 #plt.show()
+    
+    
+def func_capacity_plus_theory(ratio,K_list,linear=True):
+    """
+    Same as above, but calculates beta_c over a few realizations and compares with theory
+    """
+    N = 100
+    M=N
+    #K = 1
+    #len_P = 10
+    len_P = 20 #For K > 1
+    n_real = 5
+    sucss_matrix = np.zeros((len(K_list),len_P))
+    sucss_dev = np.zeros((len(K_list),len_P))
+#    P_list = np.linspace(0.2*N,2.0*N,len_P)
+    #P_list = np.linspace(1,15,15) #For K > 1
+    rank_mixed_layer = np.zeros((len(K_list),len_P))
+    print("ratio",ratio)
+    H = int(ratio*N)
+    cap_list = np.zeros(len(K_list)) #An empirical estmate of Pc for each K
+    for i,K in enumerate(K_list):
+        beta_max = 4*ratio/K
+        P_list = np.linspace(0.2*N,beta_max*N,len_P)
+        for j,P in enumerate(P_list):
+            sucs = []
+            sucs2 = []
+            for n in range(n_real):
+                stim = make_patterns(N,int(P))
+                cont = make_patterns(M,K)
+                h, dim = random_project_hidden_layer(stim,cont,H,sc=1,sp=1)
+                out, cod ,codpm = output_mixed_layer(h)
+                rank_mixed_layer[i,j] = (1/(N+M))*LA.matrix_rank(out) 
+                print("scaled rank of mixed layer",rank_mixed_layer[i,j])
+                #rank_mixed_layer[i] = LA.matrix_rank(out)
+                if linear:
+                    w, status = perceptron_storage(h)
+                else:
+                    w,status = perceptron_storage(out)
+                if status == 0:
+                    sucs.append(1)
+                else:
+                    sucs.append(0)
+                    
+            sucss_matrix[i,j] = np.mean(sucs)
+            sucss_dev[i,j] = np.std(sucs)
+    
+        s1 = set(np.where(sucss_matrix[i,:]<=0.8)[0])
+        s2 = set(np.where(sucss_matrix[i,:]>=0.2)[0])
+        ind_int = list(s1.intersection(s2))
+        if len(ind_int) == 0:
+            raise ValueError("Can't have reasonable estimate! - Choose finer points!")
+        else:
+            s1 = set(np.where(sucss_matrix[i,:]<=0.9)[0])
+            s2 = set(np.where(sucss_matrix[i,:]>=0.1)[0])
+            ind_int = list(s1.intersection(s2))
+            if len(ind_int) == 0:
+                raise ValueError("STILL can't have reasonable estimate! - Choose finer points!")
+        ps_bet  = P_list[ind_int]
+        pcrit = np.median(ps_bet)
+        cap_list[i] = pcrit/N
+        
+    return cap_list
 
+def cap_list_theory(ratio,K_list):
+    """
+    Returns theoretical estimate of capactity for each ratio (REMEMBER ratio = 0.5 X R as defined in paper)
+    """
+    cap_estimate = []
+    for i, K in enumerate(K_list):
+        cap = 2*ratio/K
+        cap_estimate.append(cap)
+    
+    return cap_estimate
+    
+    
 
-
-
-
-fig = plt.figure(1)
-plt.suptitle(r'Eigenvalue spectra',fontsize=14)
-ax = fig.add_subplot(131)
-ax.set_title(r'$\bar{\xi}$')
-ax.hist(LA.eigvals(cov1))
-axins = inset_axes(ax,width="50%", height="60%", loc=1)
-img1 = axins.imshow(patt_c)
-
-ax2 = fig.add_subplot(132)
-ax2.set_title(r'$h$')
-ax2.hist(LA.eigvals(cov2))
-axins2 = inset_axes(ax2,width="50%", height="60%", loc=1)
-img2 = axins2.imshow(h)
-
-ax3 = fig.add_subplot(133)
-ax3.set_title(r'$o$')
-ax3.hist(LA.eigvals(cov3))
-axins3 = inset_axes(ax3,width="50%", height="60%", loc=1)
-img3 = axins3.imshow(out)
-
-fig.colorbar(img1,ax=ax3)
-
+ratios=[0.5,1.0,2.0]
+K_list = [2,3,4]
+cap_lists = {}
+cap_estimates = {}
+for i,ratio in enumerate(ratios):
+    cap_lists[i] = func_capacity_plus_theory(ratio,K_list,linear=False)
+    cap_estimates[i] = cap_list_theory(ratio,K_list)
+plt.figure()
+colors = itertools.cycle(('b', 'black', 'r','y'))
+plt.title(r'Capacity for different K')
+for i,ratio in enumerate(ratios):
+    c = next(colors)
+    plt.plot(K_list,cap_lists[i],'s',color = c,markersize=12,label=r'Simulation, $\mathcal{}= {}$'.format('R',ratio))
+    plt.plot(K_list,cap_estimates[i],'--',color= c,markersize=12,label=r'Simulation, $\mathcal{}= {}$'.format('R',ratio))
+plt.xlabel(r'$K$')
+plt.ylabel(r'$\beta_{c}$')
+plt.legend()
 plt.show()
+
+
+
+
+    
+    
+    
+    
+    
+    
