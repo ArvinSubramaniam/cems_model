@@ -620,7 +620,7 @@ def func_capacity_plus_theory(ratio,K_list,linear=True):
         s2 = set(np.where(sucss_matrix[i,:]>=0.2)[0])
         ind_int = list(s1.intersection(s2))
         if len(ind_int) == 0:
-            raise ValueError("Can't have reasonable estimate! - Choose finer points!")
+            print("Can't have reasonable estimate! - Choose finer points!")
         else:
             s1 = set(np.where(sucss_matrix[i,:]<=0.9)[0])
             s2 = set(np.where(sucss_matrix[i,:]>=0.1)[0])
@@ -646,22 +646,21 @@ def cap_list_theory(ratio,K_list):
     
     
 
-ratios=[0.5,1.0,2.0]
-K_list = [2,3,4]
+ratios=[0.5]
+ratio = ratios[0]
+K_list = [2,3,4,5]
 cap_lists = {}
-cap_estimates = {}
-for i,ratio in enumerate(ratios):
-    cap_lists[i] = func_capacity_plus_theory(ratio,K_list,linear=False)
-    cap_estimates[i] = cap_list_theory(ratio,K_list)
+cap_lists[0] = func_capacity_plus_theory(ratio,K_list,linear=False)
+cap_lists[1] = func_capacity_plus_theory(ratio,K_list,linear=True)
+cap_estimates = cap_list_theory(ratio,K_list)
 plt.figure()
 colors = itertools.cycle(('b', 'black', 'r','y'))
-plt.title(r'Capacity for different K')
-for i,ratio in enumerate(ratios):
-    c = next(colors)
-    plt.plot(K_list,cap_lists[i],'s',color = c,markersize=12,label=r'Simulation, $\mathcal{}= {}$'.format('R',ratio))
-    plt.plot(K_list,cap_estimates[i],'--',color= c,markersize=12,label=r'Simulation, $\mathcal{}= {}$'.format('R',ratio))
-plt.xlabel(r'$K$')
-plt.ylabel(r'$\beta_{c}$')
+plt.title(r'Capacity for different K,$\mathcal{R}=0.5$')
+plt.plot(K_list,cap_lists[0],'s',color = 'b',markersize=12,label=r'Simulation, non-linear')
+plt.plot(K_list,cap_lists[1],'o',color = 'black',markersize=12,label=r'Simulation, linear')    
+plt.plot(K_list,cap_estimates,'--',color= 'black',markersize=12,label=r'Theory')
+plt.xlabel(r'$K$',fontsize=14)
+plt.ylabel(r'$\beta_{c}$',fonsize=14)
 plt.legend()
 plt.show()
 
