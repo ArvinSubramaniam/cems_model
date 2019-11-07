@@ -16,9 +16,9 @@ from scipy.optimize import linprog
 from scipy.special import comb
 from scipy.special import binom
 import seaborn as sns
-from cvxopt import matrix, solvers
+#from cvxopt import matrix, solvers
 import itertools
-import pulp
+#import pulp
 from matplotlib.lines import Line2D
 
 
@@ -51,6 +51,10 @@ def random_project_hidden_layer(stim,cont,H,sc=1,sp=1):
         sp: Variance in pattern projection
         sc: Variance in context projection
     """
+    P = stim.shape[1]
+    K = cont.shape[1]
+    N = stim.shape[0]
+    M = cont.shape[0]
     h = np.zeros((H,P*K))
 #    stim = make_patterns(N,P)
 #    cont = make_patterns(M,K)
@@ -449,7 +453,7 @@ def func_evaluate_capacity_mixed(ratio,K_list):
         for j,P in enumerate(P_list):
             sucs = []
             for n in range(n_real):
-                patt = make_patterns(N,int(P))
+                stim = make_patterns(N,int(P))
                 cont = make_patterns(M,K)
                 h, dim = random_project_hidden_layer(stim,cont,H,sc=1,sp=1)
                 out, cod ,codpm = output_mixed_layer(h)
@@ -466,9 +470,11 @@ def func_evaluate_capacity_mixed(ratio,K_list):
             sucss_dev[i,j] = np.std(sucs)
 
     fig = plt.figure()
-    plt.suptitle(r'$\mathcal{R}=1$')
+    plt.suptitle(r'$\mathcal{R}=1$',fontsize=16)
     ax = fig.add_subplot(121)
-    ax.set_title(r'Capacity, K={},N={}'.format(K,N),fontsize=16)
+    ax.set_title(r'Capacity, $N={},M={}$'.format(N,M))
+    colors = itertools.cycle(('blue','red','black'))
+    colors_ver = itertools.cycle(('lightskyblue','lightcoral','grey'))
     for i,K in enumerate(K_list):
         ind_up = np.where(sucss_matrix[i,:] + sucss_dev[i,:] >= 1.)[0] #Check if it's too high
         sucss_dev[i,ind_up] = np.ones(len(ind_up)) - sucss_matrix[i,ind_up]
@@ -476,31 +482,34 @@ def func_evaluate_capacity_mixed(ratio,K_list):
         ind_down = np.where(sucss_matrix[i,:] - sucss_dev[i,:] <= 0.)[0]#Check if it's too low
         sucss_dev[i,ind_down] = sucss_matrix[i,ind_down]
         
-        ax.errorbar((1/N)*P_list,sucss_matrix[i,:],yerr=sucss_dev[i,:],marker='s',linestyle='-', capsize=5, markeredgewidth=2,
+        ax.errorbar((1/N)*P_list,sucss_matrix[i,:],yerr=sucss_dev[i,:],color=next(colors),marker='s',linestyle='-', capsize=5, markeredgewidth=2,
                      label=r'$K={}$'.format(K))
-        #ax.axvline(x=2*np.mean(rank_mixed_layer[i,:])/(K),linestyle='dashdot',color='r',label=r'$P_c = 2/K \times c$')
+        ax.axvline(x=2*rank_mixed_layer[i,-int(len_P/2)]*(N+M)/(N*K),linestyle='dashdot',color=next(colors_ver))
     ax.axhline(y=0.5,linestyle='--',label='Prob. = 0.5')
     #plt.xlabel(r'$P$',fontsize=14)
-    ax.xlabel(r'$\beta$',fontsize=14)
-    ax.ylabel('Prob of success',fontsize=14)
+    ax.set_xlabel(r'$\beta$',fontsize=14)
+    ax.set_ylabel('Prob of success',fontsize=14)
     ax.legend(fontsize=12)
     #plt.savefig(r'{}/capacity_curve_errorbars_K={}.png'.format(path,K))
     
     ax2 = fig.add_subplot(122)
-    ax2.set_title(r'$rank(h^{T} h)$ vs. $P$,$K={}$'.format(K))
+    ax2.set_title(r'$rank(h^T h)$ vs. $P$,$\mathcal{R}=1$')
     for i,K in enumerate(K_list):
-        ax2.plot((1/N)*P_list,rank_mixed_layer[i,:],label=r'$K={}$'.format(K))
-    ax2.xlabel(r'$\beta$',fontisze=14)
-    ax2.ylabel(r'Rank',fontsize=14)
+        ax2.plot((1/N)*P_list,rank_mixed_layer[i,:]*(N+M),color=next(colors),marker='o',markersize=12,label=r'$K={}$'.format(K))
+    ax2.set_xlabel(r'$\beta$',fontisze=14)
+    ax2.set_ylabel(r'Rank',fontsize=14)
     ax2.legend(fontsize=12)
     
+    path = 'capacity_different_R_linear'
+    plt.savefig(r'{}\R=1.png'.format(path))
     plt.show()
 
 
+ratios = [1.0]
+K_list = [2,3,8]
 
 
-
-
+func_evaluate_capacity_mixed(ratios[0],K_list)
 
 
 
