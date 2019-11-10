@@ -109,19 +109,19 @@ def output_mixed_layer(h,thres=0.):
     
     return g, cod, cod_std
 
+
 def random_proj_generic(H,patt):
     """
     Perform generic random projection with a H x N matrix
     """
     N = patt.shape[0]
     h = np.zeros((H,patt.shape[1]))
+    wrand = np.random.normal(0,1/N,(H,N))
     for p in range(patt.shape[1]):
-        wrand = np.random.normal(0,1/N,(H,N))
         h[:,p] = np.matmul(wrand,patt[:,p])
         
     return h
     
-
 
 ###CHECK CLASSIFICATION FOR GENERIC CORRELATED STIMULI
 def make_patterns_corr(N,P,fcorr=0.7,cod=0.5):
