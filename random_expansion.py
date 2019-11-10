@@ -59,16 +59,16 @@ def random_project_hidden_layer(stim,cont,H,sc=1,sp=1):
 #    stim = make_patterns(N,P)
 #    cont = make_patterns(M,K)
     
-    #matc = np.random.normal(0,sc/M,(int(H/2),M))
-    #matp = np.random.normal(0,sp/N,(int(H/2),N))
+    matc = np.random.normal(0,sc/M,(int(H/2),M))
+    matp = np.random.normal(0,sp/N,(int(H/2),N))
     
     for i in range(P):
-        matp = np.random.normal(0,sp/N,(int(H/2),N))
+        #matp = np.random.normal(0,sp/N,(int(H/2),N))
         h_stim = np.matmul(matp,stim[:,i])
         #print("h_stim",h_stim)
         #print("dimension h_stim",h_stim.shape)
         for j in range(K):
-            matc = np.random.normal(0,sc/M,(int(H/2),M))
+            #matc = np.random.normal(0,sc/M,(int(H/2),M))
             h_cont = np.matmul(matc,cont[:,j])
             #print("h_cont",h_cont)
             #print("dimension h_cont",h_cont.shape)
@@ -80,7 +80,6 @@ def random_project_hidden_layer(stim,cont,H,sc=1,sp=1):
     #print("dimensioality of h is",dim)
             
     return h, dim
-
 
 
 def output_mixed_layer(h,thres=0.):
