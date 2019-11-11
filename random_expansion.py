@@ -575,16 +575,5 @@ def func_evaluate_capacity_mixed(ratio,K_list,theta=0.):
     plt.show()
 
 
-    return cap_list
+    return cap_list, coding
 
-
-ratios = [2.0]
-K_list = [2]
-caps = {}
-for i, ratio in enumerate(ratios):
-    caps[i] = func_evaluate_capacity_mixed(ratio,K_list)
-
-plt.figure()
-plt.title()
-for i,ratio in enumerate(ratios):
-    plt.plot(K_list,caps[i],'s',markersize=12,)
