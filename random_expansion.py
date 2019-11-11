@@ -577,13 +577,3 @@ def func_evaluate_capacity_mixed(ratio,K_list,theta=0.):
 
 
     return cap_list, coding
-
-
-
-
-    
-    
-    
-    
-    
-    
