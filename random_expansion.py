@@ -27,6 +27,10 @@ def generate_pattern_context2(stim,cont):
     Generates an 2N x PK matrix of (input,context) pairs GIVEN stim,cont
     
     """
+    N = stim.shape[0]
+    P = stim.shape[1]
+    M = cont.shape[0]
+    K = cont.shape[1]
     mat = np.zeros((N+M,P*K))
     for p in range(P):
         for l in range(K):
@@ -40,7 +44,7 @@ def generate_pattern_context2(stim,cont):
     return mat 
 
 
-def random_project_hidden_layer(stim,cont,H,sc=1,sp=1):
+def random_project_hidden_layer(stim,cont,H,sc=1,sp=1,ann=False):
     """
     Takes in contextual inputs and randomly projects them onto hidden layer.
     Draw matrices RANDOMLY FOR EACH P AND K
@@ -50,6 +54,7 @@ def random_project_hidden_layer(stim,cont,H,sc=1,sp=1):
         H: Number of units in mixed layer
         sp: Variance in pattern projection
         sc: Variance in context projection
+        ann: True to experiment with randomly drawing at each time step
     """
     P = stim.shape[1]
     K = cont.shape[1]
@@ -59,21 +64,25 @@ def random_project_hidden_layer(stim,cont,H,sc=1,sp=1):
 #    stim = make_patterns(N,P)
 #    cont = make_patterns(M,K)
     
-    #matc = np.random.normal(0,sc/M,(int(H/2),M))
-    #matp = np.random.normal(0,sp/N,(int(H/2),N))
+    matc = np.random.normal(0,sc/M,(int(H/2),M))
+    matp = np.random.normal(0,sp/N,(int(H/2),N))
+    
+    matbig = np.random.normal(0,1/(N+M),(H,N+M))
     
     for i in range(P):
-        matp = np.random.normal(0,sp/N,(int(H/2),N))
-        h_stim = np.matmul(matp,stim[:,i])
-        #print("h_stim",h_stim)
-        #print("dimension h_stim",h_stim.shape)
+        if ann:
+            matp = np.random.normal(0,sp/N,(int(H/2),N))
+            h_stim = np.matmul(matp,stim[:,i])
+        #h_stim = np.matmul(matp,stim[:,i])
+        h_stim = np.matmul(matbig[:,:N],stim[:,i])
         for j in range(K):
-            matc = np.random.normal(0,sc/M,(int(H/2),M))
-            h_cont = np.matmul(matc,cont[:,j])
-            #print("h_cont",h_cont)
-            #print("dimension h_cont",h_cont.shape)
-            h_in = np.vstack((h_stim.reshape(int(H/2),1),h_cont.reshape(int(H/2),1))).reshape(H)
-            #print("index",K*i + j)
+            if ann:
+                matc = np.random.normal(0,sc/M,(int(H/2),M))
+                h_cont = np.matmul(matc,cont[:,j])
+            #h_cont = np.matmul(matc,cont[:,j])
+            h_cont = np.matmul(matbig[:,N:],cont[:,j])
+            #h_in = np.vstack((h_stim.reshape(int(H/2),1),h_cont.reshape(int(H/2),1))).reshape(H)
+            h_in = h_stim + h_cont
             h[:,K*i + j] = h_in
             
     dim = LA.matrix_rank(h)
@@ -82,8 +91,7 @@ def random_project_hidden_layer(stim,cont,H,sc=1,sp=1):
     return h, dim
 
 
-
-def output_mixed_layer(h,thres=0.):
+def output_mixed_layer(h,thres=0.,act="sign"):
     """
     Args:
         h: H \times PK matrix of mixed layer activations
@@ -98,7 +106,11 @@ def output_mixed_layer(h,thres=0.):
     t_arr = thres*np.ones(h.shape[0])
     cods = []
     for i in range(g.shape[1]):
-        g[:,i] = np.sign(h[:,i] - t_arr)
+        if act=="sign":
+            g[:,i] = np.sign(h[:,i] - t_arr)
+        else: #Choose ReLU
+            g[:,i] = h[:,i]*(h[:,i]>t_arr)
+            print("eg of relu",g[:,i])
         num = len(np.where(g[:,i]>0.)[0])
         cod = num/(len(g[:,i]))
         cods.append(cod)
@@ -110,17 +122,109 @@ def output_mixed_layer(h,thres=0.):
     
     return g, cod, cod_std
 
+
+def run_pipeline_mixedlayer(stim,cont,H,theta=0.,annealed=False):
+    """
+    Runs pipeline from stim-context untill non-linearities
+    
+    Returns:
+        h: Linear activations
+        out: Non-linear activations
+        cod: Coding level
+    """
+    
+    h, dim = random_project_hidden_layer(stim,cont,H,sc=1,sp=1,ann=annealed)
+    out, cod ,codpm = output_mixed_layer(h,thres=theta)
+    
+    return h, out, cod
+
+
+
 def random_proj_generic(H,patt):
     """
     Perform generic random projection with a H x N matrix
     """
     N = patt.shape[0]
     h = np.zeros((H,patt.shape[1]))
+    wrand = np.random.normal(0,1/N,(H,N))
     for p in range(patt.shape[1]):
-        wrand = np.random.normal(0,1/N,(H,N))
         h[:,p] = np.matmul(wrand,patt[:,p])
         
     return h
+
+###
+#N=5
+#M=5
+#P=3
+#K=2
+#H=20
+#stim = make_patterns(N,P)
+#cont = make_patterns(M,K)
+#h,out,dim = run_pipeline_mixedlayer(stim,cont,H,0.)
+#print("shape of h",h.shape)
+#print("rank of out",LA.matrix_rank(out))
+#
+####PLOT OF PATTERN-CONTEXT"""
+#patt_c = generate_pattern_context2(stim,cont)
+#rank_stim = LA.matrix_rank(patt_c)
+#fig = plt.figure()
+#plt.suptitle(r'Example expansion, $R={}$'.format(2))
+#ax1 = fig.add_subplot(131)
+#ax1.set_title(r'$\xi,\phi$, $rank = {}$'.format(rank_stim))
+#im1 = ax1.imshow(patt_c)
+#ax2 = fig.add_subplot(132)
+#ax2.set_title(r'$h, rank = {}$'.format(LA.matrix_rank(h)))
+#im2 = ax2.imshow(h)
+#ax3 = fig.add_subplot(133)
+#ax3.set_title(r'$o, rank = {}$'.format(LA.matrix_rank(out)))
+#im3 = ax3.imshow(out)
+#plt.colorbar(im3,ax=ax3)
+#plt.show()
+
+
+
+####REPRODUCE FUSI,BARAK PLOT
+#ratios = [0.1,0.2,0.4,0.8] + list(np.linspace(1,3,3))
+#thress = [0.0,0.18,0.24]
+##thress = [0.0001]
+#N=100
+#M=100
+#P=15
+#K=15
+##H=100
+#stim = make_patterns(N,P)
+#cont = make_patterns(M,K)
+#patt_c = generate_pattern_context2(stim,cont)
+#patt_gen = make_patterns_corr(N,P,fcorr=0.7)
+#dim_stim = LA.matrix_rank(patt_c)
+##dim_stim = LA.matrix_rank(patt_gen)
+#cods = np.zeros(len(thress))
+#cods_std = np.zeros(len(thress))
+#dims = np.zeros((len(ratios),len(thress)))
+#part_ratio = np.zeros((len(ratios),len(thress)))
+#for i,r in enumerate(ratios):
+#    for j,t in enumerate(thress):
+#        H = int(r*N)
+#        print("H is",H)
+#        h, out, cod = run_pipeline_mixedlayer(stim,cont,H,theta=t,annealed=False)
+#        #h = random_proj_generic(H,patt_gen)
+#        rank_out = LA.matrix_rank(out)
+#        print("output dimensionality",rank_out)
+#        dims[i,j] = rank_out
+#        cods[j] = cod
+#        
+#
+#fig = plt.figure()
+#ax = fig.add_subplot(111)
+#plt.title(r'Dimensionality of mixed layer, $K={}$,$P={}$'.format(K,P),fontsize=16)
+#for j,t in enumerate(thress):
+#    plt.plot(ratios,dims[:,j],'s-',label=r'$f={}, \theta={}$'.format(cods[j],t))
+#plt.axhline(dim_stim,linestyle='--',label=r'Rank of $\bar{\xi} = 15$')
+##plt.axhline(P*K,linestyle='dashdot',label=r'Maximal rank = {}'.format(P*K))
+#plt.xlabel(r'Expansion ratio, $\mathcal{R}$',fontsize=16)
+#plt.ylabel(r'Dimensionality',fontsize=16)
+#plt.legend(fontsize=14)
+#plt.show() 
     
 
 
@@ -171,28 +275,25 @@ def make_patterns_corr(N,P,fcorr=0.7,cod=0.5):
 #stim = make_patterns(N,P)
 #cont = make_patterns(M,K)
 #patt_c = generate_pattern_context2(stim,cont)
+#th = 0.1
 #
 #dimh_patt = []
 #dimo_patt = []
 #dimh_patt_c = []
 #dimo_patt_c = []
+#
 #for i,H_in in enumerate(H_list):
 #    H = int(H_in)
-#    h = np.zeros((H,P))
-#    out = np.zeros((H,P))
-#    for i in range(P):
-#        wrand = np.random.normal(0,1/N,(H,N))
-#        h[:,i] = np.matmul(wrand,patt_corr[:,i])
-#        out[:,i] = np.sign(h[:,i])
+#    h, out, cod = run_pipeline_mixedlayer(stim,cont,H,th)
+#    print("shape of h",h.shape)
+#    h2 = random_proj_generic(H,patt_corr)
+#    print("shape of h2",h2.shape)
+#    out2 = np.sign(h2 - th)
 #    
-#    
-#    h2, dim = random_project_hidden_layer(stim,cont,H)
-#    out2,cod1,cod2 = output_mixed_layer(h2)
-#    
-#    dimh_patt.append(LA.matrix_rank(h))
-#    dimo_patt.append(LA.matrix_rank(out))
-#    dimh_patt_c.append(LA.matrix_rank(h2))
-#    dimo_patt_c.append(LA.matrix_rank(out2))
+#    dimh_patt_c.append(LA.matrix_rank(h))
+#    dimo_patt_c.append(LA.matrix_rank(out))
+#    dimh_patt.append(LA.matrix_rank(h2))
+#    dimo_patt.append(LA.matrix_rank(out2))
 #
 #
 #plt.figure()
@@ -350,59 +451,6 @@ def similarity_measure(x,y):
 
 
 
-def mutual_info(x,y):
-    """
-    Computes mutual information between to vectors
-    """
-    px = np.histogram(x,density=True)[0]
-    py = np.histogram(y,density=True)[0]
-    px_pos = px[np.where(px!=0)[0]]
-    py_pos = py[np.where(py!=0)[0]]
-    lpx = np.log(px_pos)
-    lpy = np.log(py_pos)
-    dot1 = np.dot(px_pos,lpx)
-    dot2 = np.dot(py_pos,lpy)
-    
-    minfo = dot1 - dot2
-    
-    return minfo
-
-
-###REPRODUCE FUSI,BARAK PLOT
-#ratios = [0.1,0.2,0.4,0.8] + list(np.linspace(1,5,5))
-#thress = [0,0.08,0.1]
-#cods = np.zeros(len(thress))
-#cods_std = np.zeros(len(thress))
-#dims = np.zeros((len(ratios),len(thress)))
-#part_ratio = np.zeros((len(ratios),len(thress)))
-#for i,r in enumerate(ratios):
-#    for j,t in enumerate(thress):
-#        H = int(r*N)
-#        h, dim = random_project_hidden_layer(stim,cont,H)
-#        print("input dimensionality",dim)
-#        out, cod, cod_std = output_mixed_layer(h,thres=t)
-#        print("output dimensionality",LA.matrix_rank(out))
-#        part_ratio[i,j] = compute_participation_ratio(out)
-#        print("participation ratio",part_ratio[i,j])
-#        dims[i,j] = LA.matrix_rank(out)
-#        cods[j] = cod
-#        cods_std[j] = cod_std
-#        
-#
-#fig = plt.figure()
-#ax = fig.add_subplot(111)
-#plt.title(r'Dimensionality of mixed layer, $K={}$,$P={}$'.format(K,P),fontsize=16)
-#for j,t in enumerate(thress):
-#    
-#    plt.plot(ratios,dims[:,j],linestyle='-',label=r'$f={}, \theta={}$'.format(cods[j],t))
-#plt.axhline(dim_stim,linestyle='--',label=r'Rank of $\bar{\xi} = 29$')
-#plt.axhline(P*K,linestyle='dashdot',label=r'Maximal rank = {}'.format(P*K))
-#plt.xlabel(r'Expansion ratio, $\mathcal{R}$',fontsize=16)
-#plt.ylabel(r'Dimensionality',fontsize=16)
-#plt.legend(fontsize=14)
-#plt.show() 
-
-
 ###Histogram of activations in mixed layer for different theta###
 #N=100
 #M=100
@@ -412,10 +460,12 @@ def mutual_info(x,y):
 #codings = []
 #outs = {}
 #H=2*N
+#stim = make_patterns(N,P)
+#cont = make_patterns(M,K)
 #h, dim = random_project_hidden_layer(stim,cont,H)
 #for i,t in enumerate(thetas):
-#    out, cod, cod_std = output_mixed_layer(h,thres=t)
-#    outs[i] = out
+#    h, out, cod = run_pipeline_mixedlayer(stim,cont,H,theta=t)
+#    rank_out = LA.matrix_rank(out)
 #    codings.append(cod)
 #    
 #
@@ -431,191 +481,48 @@ def mutual_info(x,y):
 #plt.show()
 
 
-
-def func_evaluate_capacity_mixed(ratio,K_list):
+def func_evaluate_capacity_mixed(ratio,K_list,theta=0.):
     """
-    Capacity as a funciton of expansion ratio.
-    At the moment for linear vs. non-linear
+    Capacity as a funciton of expansion ratio
+    At the moment comparing ultra-sparse vs dense
     """
     N = 100
     M=N
     #K = 1
     #len_P = 10
     len_P = 15 #For K > 1
-    n_real = 5
+    n_real = 1
     sucss_matrix = np.zeros((len(K_list),len_P))
     sucss_dev = np.zeros((len(K_list),len_P))
-    sucss_matrix2 = np.zeros((len(K_list),len_P))  #Of non-linear outputs
-    sucss_dev2 = np.zeros((len(K_list),len_P))
-#    P_list = np.linspace(0.2*N,2.0*N,len_P)
+    #P_list = np.linspace(0.2*N,1.0*N,len_P)
     #P_list = np.linspace(1,15,15) #For K > 1
     rank_mixed_layer = np.zeros((len(K_list),len_P))
     print("ratio",ratio)
     H = int(ratio*N)
+    coding = 0
+    cap_list = np.zeros(len(K_list))
     for i,K in enumerate(K_list):
         beta_max = 4*ratio/K
         P_list = np.linspace(0.2*N,beta_max*N,len_P)
         for j,P in enumerate(P_list):
             sucs = []
-            sucs2 = []
             for n in range(n_real):
                 stim = make_patterns(N,int(P))
                 cont = make_patterns(M,K)
-                h, dim = random_project_hidden_layer(stim,cont,H,sc=1,sp=1)
-                out, cod ,codpm = output_mixed_layer(h)
+                h, out, cod = run_pipeline_mixedlayer(stim,cont,H,theta)
                 rank_mixed_layer[i,j] = (1/(N+M))*LA.matrix_rank(out) 
                 print("scaled rank of mixed layer",rank_mixed_layer[i,j])
                 #rank_mixed_layer[i] = LA.matrix_rank(out)
-                w, status = perceptron_storage(h)
-                w2, status2 = perceptron_storage(out)
+                w, status = perceptron_storage(out)
                 if status == 0:
                     sucs.append(1)
                 else:
                     sucs.append(0)
-                    
-                if status2 == 0:
-                    sucs2.append(1)
-                else:
-                    sucs2.append(0)
-                    
+            print("number in matrix",np.mean(sucs))
             sucss_matrix[i,j] = np.mean(sucs)
             sucss_dev[i,j] = np.std(sucs)
-            sucss_matrix2[i,j] = np.mean(sucs2)
-            sucss_dev2[i,j] = np.std(sucs2)
-
-    fig = plt.figure()
-    plt.suptitle(r'$N=100,M=100,\mathcal{R}=1$',fontsize=16)
-    ax = fig.add_subplot(121)
-    ax.set_title(r'Capacity of $h$ - linear')
-    colors = itertools.cycle(('blue','red','black'))
-    colors_ver = itertools.cycle(('lightskyblue','lightcoral','grey'))
-    for i,K in enumerate(K_list):
-        ind_up = np.where(sucss_matrix[i,:] + sucss_dev[i,:] >= 1.)[0] #Check if it's too high
-        sucss_dev[i,ind_up] = np.ones(len(ind_up)) - sucss_matrix[i,ind_up]
-        
-        ind_down = np.where(sucss_matrix[i,:] - sucss_dev[i,:] <= 0.)[0]#Check if it's too low
-        sucss_dev[i,ind_down] = sucss_matrix[i,ind_down]
-        
-        ax.errorbar((1/N)*P_list,sucss_matrix[i,:],yerr=sucss_dev[i,:],color=next(colors),marker='s',linestyle='-', capsize=5, markeredgewidth=2,
-                     label=r'$K={}$'.format(K))
-        ax.axvline(x=2*rank_mixed_layer[i,-int(len_P/2)]*(N+M)/(N*K),linestyle='dashdot',color=next(colors_ver))
-    ax.axhline(y=0.5,linestyle='--',label='Prob. = 0.5')
-    #plt.xlabel(r'$P$',fontsize=14)
-    ax.set_xlabel(r'$\beta$',fontsize=14)
-    ax.set_ylabel('Prob of success',fontsize=14)
-    ax.legend(fontsize=12)
-    #plt.savefig(r'{}/capacity_curve_errorbars_K={}.png'.format(path,K))
-    
-    ax2 = fig.add_subplot(122)
-    ax2.set_title(r'Capacity of $o$ - non-linear')
-    for i,K in enumerate(K_list):
-        ind_up = np.where(sucss_matrix2[i,:] + sucss_dev2[i,:] >= 1.)[0] #Check if it's too high
-        sucss_dev2[i,ind_up] = np.ones(len(ind_up)) - sucss_matrix2[i,ind_up]
-        
-        ind_down = np.where(sucss_matrix2[i,:] - sucss_dev2[i,:] <= 0.)[0]#Check if it's too low
-        sucss_dev2[i,ind_down] = sucss_matrix2[i,ind_down]
-        
-        ax2.errorbar((1/N)*P_list,sucss_matrix2[i,:],yerr=sucss_dev2[i,:],color=next(colors),marker='s',linestyle='-', capsize=5, markeredgewidth=2,
-                     label=r'$K={}$'.format(K))
-        ax2.axvline(x=2*rank_mixed_layer[i,-int(len_P/2)]*(N+M)/(N*K),linestyle='dashdot',color=next(colors_ver))
-    ax2.axhline(y=0.5,linestyle='--',label='Prob. = 0.5')
-    #plt.xlabel(r'$P$',fontsize=14)
-    ax2.set_xlabel(r'$\beta$',fontsize=14)
-    ax2.set_ylabel('Prob of success',fontsize=14)
-    ax2.legend(fontsize=12)
-    plt.show()
 
 
-
-###COMARE EIGENVALUE SPECTRA OF LINEAR VS NON-LINER ACTIVATION LAYER
-#from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-#N=100
-#M=100
-#P=80
-#K=2
-#H=100
-#stim = make_patterns(N,int(P))
-#cont = make_patterns(M,K)
-#patt_c = generate_pattern_context2(stim,cont)
-#cov1 = (1/patt_c.shape[1])*np.matmul(patt_c,patt_c.T)
-#u1,d1,v1 = LA.svd(patt_c)
-#h, dim = random_project_hidden_layer(stim,cont,H,sc=1,sp=1)
-#cov2 = (1/h.shape[1])*np.matmul(h,h.T)
-#u2,d2,v2 = LA.svd(h)
-#out, cod ,codpm = output_mixed_layer(h)
-#cov3 = (1/out.shape[1])*np.matmul(out,out.T)
-#u3,d3,v3 = LA.svd(out)
-#
-#
-#fig = plt.figure(1)
-#plt.suptitle(r'Eigenvalue spectra',fontsize=14)
-#ax = fig.add_subplot(131)
-#ax.set_title(r'$\bar{\xi}$')
-#ax.hist(LA.eigvals(cov1))
-#axins = inset_axes(ax,width="50%", height="60%", loc=1)
-#img1 = axins.imshow(patt_c)
-#
-#ax2 = fig.add_subplot(132)
-#ax2.set_title(r'$h$')
-#ax2.hist(LA.eigvals(cov2))
-#axins2 = inset_axes(ax2,width="50%", height="60%", loc=1)
-#img2 = axins2.imshow(h)
-#
-#ax3 = fig.add_subplot(133)
-#ax3.set_title(r'$o$')
-#ax3.hist(LA.eigvals(cov3))
-#axins3 = inset_axes(ax3,width="50%", height="60%", loc=1)
-#img3 = axins3.imshow(out)
-#
-#fig.colorbar(img1,ax=ax3)
-#
-#plt.show()
-    
-    
-def func_capacity_plus_theory(ratio,K_list,linear=True):
-    """
-    Same as above, but calculates beta_c over a few realizations and compares with theory
-    """
-    N = 100
-    M=N
-    #K = 1
-    #len_P = 10
-    len_P = 20 #For K > 1
-    n_real = 5
-    sucss_matrix = np.zeros((len(K_list),len_P))
-    sucss_dev = np.zeros((len(K_list),len_P))
-#    P_list = np.linspace(0.2*N,2.0*N,len_P)
-    #P_list = np.linspace(1,15,15) #For K > 1
-    rank_mixed_layer = np.zeros((len(K_list),len_P))
-    print("ratio",ratio)
-    H = int(ratio*N)
-    cap_list = np.zeros(len(K_list)) #An empirical estmate of Pc for each K
-    for i,K in enumerate(K_list):
-        beta_max = 4*ratio/K
-        P_list = np.linspace(0.2*N,beta_max*N,len_P)
-        for j,P in enumerate(P_list):
-            sucs = []
-            sucs2 = []
-            for n in range(n_real):
-                stim = make_patterns(N,int(P))
-                cont = make_patterns(M,K)
-                h, dim = random_project_hidden_layer(stim,cont,H,sc=1,sp=1)
-                out, cod ,codpm = output_mixed_layer(h)
-                rank_mixed_layer[i,j] = (1/(N+M))*LA.matrix_rank(out) 
-                print("scaled rank of mixed layer",rank_mixed_layer[i,j])
-                #rank_mixed_layer[i] = LA.matrix_rank(out)
-                if linear:
-                    w, status = perceptron_storage(h)
-                else:
-                    w,status = perceptron_storage(out)
-                if status == 0:
-                    sucs.append(1)
-                else:
-                    sucs.append(0)
-                    
-            sucss_matrix[i,j] = np.mean(sucs)
-            sucss_dev[i,j] = np.std(sucs)
-    
         s1 = set(np.where(sucss_matrix[i,:]<=0.8)[0])
         s2 = set(np.where(sucss_matrix[i,:]>=0.2)[0])
         ind_int = list(s1.intersection(s2))
@@ -630,38 +537,63 @@ def func_capacity_plus_theory(ratio,K_list,linear=True):
         ps_bet  = P_list[ind_int]
         pcrit = np.median(ps_bet)
         cap_list[i] = pcrit/N
+
+
+    coding = cod
+    fig = plt.figure()
+    #plt.suptitle(r'$\mathcal{R}=0.5$',fontsize=16)
+    ax = fig.add_subplot(121)
+    ax.set_title(r'$(\theta ,f) = ({},{})$'.format(theta,coding))
+    colors = itertools.cycle(('blue','red','black'))
+    colors_ver = itertools.cycle(('lightskyblue','lightcoral','grey'))
+    for i,K in enumerate(K_list):
+        ind_up = np.where(sucss_matrix[i,:] + sucss_dev[i,:] >= 1.)[0] #Check if it's too high
+        sucss_dev[i,ind_up] = np.ones(len(ind_up)) - sucss_matrix[i,ind_up]
         
-    return cap_list
+        ind_down = np.where(sucss_matrix[i,:] - sucss_dev[i,:] <= 0.)[0]#Check if it's too low
+        sucss_dev[i,ind_down] = sucss_matrix[i,ind_down]
+        
+        ax.errorbar((1/N)*P_list,sucss_matrix[i,:],yerr=sucss_dev[i,:],color=next(colors),marker='s',linestyle='-', capsize=5, markeredgewidth=2,
+                     label=r'$K={}$'.format(K))
+        #ax.axvline(x=2*rank_mixed_layer[i,-int(len_P/2)]*(N+M)/(N*K),linestyle='dashdot',color=next(colors_ver))
+    ax.axhline(y=0.5,linestyle='--',label='Prob. = 0.5')
+    #plt.xlabel(r'$P$',fontsize=14)
+    ax.set_xlabel(r'$\beta$',fontsize=14)
+    ax.set_ylabel('Prob of success',fontsize=14)
+    ax.legend(fontsize=12)
+    #plt.savefig(r'{}/capacity_curve_errorbars_K={}.png'.format(path,K))
+    
+#    ax2 = fig.add_subplot(122)
+#    ax2.set_title(r'$rank(h^T h)$ vs. $P$,$\mathcal{R}=0.5$')
+#    for i,K in enumerate(K_list):
+#        ax2.plot((1/N)*P_list,rank_mixed_layer[i,:]*(N+M),color=next(colors),marker='o',markersize=12,label=r'$K={}$'.format(K))
+#    ax2.set_xlabel(r'$\beta$',fontsize=14)
+#    ax2.set_ylabel(r'Rank',fontsize=14)
+#    ax2.legend(fontsize=12)
+#    
+#    path = 'capacity_different_R_linear'
+#    plt.savefig(r'{}\R=1.png'.format(path))
+    plt.show()
 
-def cap_list_theory(ratio,K_list):
-    """
-    Returns theoretical estimate of capactity for each ratio (REMEMBER ratio = 0.5 X R as defined in paper)
-    """
-    cap_estimate = []
-    for i, K in enumerate(K_list):
-        cap = 2*ratio/K
-        cap_estimate.append(cap)
-    
-    return cap_estimate
-    
-    
 
-ratios=[0.5]
-ratio = ratios[0]
-K_list = [2,3,4,5]
-cap_lists = {}
-cap_lists[0] = func_capacity_plus_theory(ratio,K_list,linear=False)
-cap_lists[1] = func_capacity_plus_theory(ratio,K_list,linear=True)
-cap_estimates = cap_list_theory(ratio,K_list)
+    return cap_list, coding
+
+
+ratio = 2.0
+thetas = [0.05,0.10,0.18]
+K_list = [2,3,4]
+caps = {}
+codings = []
+for i, theta in enumerate(thetas):
+    caps[i], coding = func_evaluate_capacity_mixed(ratio,K_list,theta)
+    codings.append(coding)
+
 plt.figure()
-colors = itertools.cycle(('b', 'black', 'r','y'))
-plt.title(r'Capacity for different K,$\mathcal{R}=0.5$')
-plt.plot(K_list,cap_lists[0],'s',color = 'b',markersize=12,label=r'Simulation, non-linear')
-plt.plot(K_list,cap_lists[1],'o',color = 'black',markersize=12,label=r'Simulation, linear')    
-plt.plot(K_list,cap_estimates,'--',color= 'black',markersize=12,label=r'Theory')
+plt.title(r'Capacity for different coding levels')
+for i, theta in enumerate(thetas):
+    plt.plot(K_list,caps[i],'s',markersize=12,label=r'$f={}$'.format(np.round(codings[i],3)))
 plt.xlabel(r'$K$',fontsize=14)
-plt.ylabel(r'$\beta_{c}$',fonsize=14)
-plt.legend()
+plt.ylabel(r'$\beta_{c}$',fontsize=14)
 plt.show()
 
 
