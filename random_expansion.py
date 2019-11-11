@@ -555,7 +555,7 @@ def func_evaluate_capacity_mixed(ratio,K_list,theta=0.):
         
         ax.errorbar((1/N)*P_list,sucss_matrix[i,:],yerr=sucss_dev[i,:],color=next(colors),marker='s',linestyle='-', capsize=5, markeredgewidth=2,
                      label=r'$K={}$'.format(K))
-        #ax.axvline(x=2*rank_mixed_layer[i,-int(len_P/2)]*(N+M)/(N*K),linestyle='dashdot',color=next(colors_ver))
+        ax.axvline(x=2*rank_mixed_layer[i,-int(len_P/2)]*(N+M)/(N*K),linestyle='dashdot',color=next(colors_ver))
     ax.axhline(y=0.5,linestyle='--',label='Prob. = 0.5')
     #plt.xlabel(r'$P$',fontsize=14)
     ax.set_xlabel(r'$\beta$',fontsize=14)
@@ -579,22 +579,22 @@ def func_evaluate_capacity_mixed(ratio,K_list,theta=0.):
     return cap_list, coding
 
 
-ratio = 2.0
-thetas = [0.05,0.10,0.18]
-K_list = [2,3,4]
-caps = {}
-codings = []
-for i, theta in enumerate(thetas):
-    caps[i], coding = func_evaluate_capacity_mixed(ratio,K_list,theta)
-    codings.append(coding)
-
-plt.figure()
-plt.title(r'Capacity for different coding levels')
-for i, theta in enumerate(thetas):
-    plt.plot(K_list,caps[i],'s',markersize=12,label=r'$f={}$'.format(np.round(codings[i],3)))
-plt.xlabel(r'$K$',fontsize=14)
-plt.ylabel(r'$\beta_{c}$',fontsize=14)
-plt.show()
+#ratio = 2.0
+#thetas = [0.05,0.10,0.18]
+#K_list = [2,3,4]
+#caps = {}
+#codings = []
+#for i, theta in enumerate(thetas):
+#    caps[i], coding = func_evaluate_capacity_mixed(ratio,K_list,theta)
+#    codings.append(coding)
+#
+#plt.figure()
+#plt.title(r'Capacity for different coding levels')
+#for i, theta in enumerate(thetas):
+#    plt.plot(K_list,caps[i],'s',markersize=12,label=r'$f={}$'.format(np.round(codings[i],3)))
+#plt.xlabel(r'$K$',fontsize=14)
+#plt.ylabel(r'$\beta_{c}$',fontsize=14)
+#plt.show()
 
 
 
