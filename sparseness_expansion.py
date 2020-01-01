@@ -468,6 +468,33 @@ def learn_w_hebb(stim,labels):
     return w_hebb
 
 
+#N=200
+#P=100
+#th=2.1
+#H=400
+#d_in = 0.2
+#C=20
+#bool_ = False
+#outs = np.zeros((H,P))
+#stims = np.zeros((N,P))
+#labels = np.zeros(P)
+#for i in range(P):
+#    stim_clus,lbl = generate_clustered_stim(N,C,ds,pm=bool_)
+#    stims[:,i] = stim_clus[:,0] #Pick centroid
+#    delta_s_check = compute_delta_s(stim)
+#    print("check delta_s",delta_s_check)
+#    cort_acts, hs, sparsity = random_expansion_clustered(stim,H,theta=th,pm=bool_)
+#    #Pick one member of cluster
+#    outs[:,i] = cort_acts[:,np.random.randint(C)]
+#    labels[i] = lbl
+#
+#w_hebb = np.matmul(outs,labels)
+#len_test = 20
+#stabs = []
+#for j in range(len_test):
+#    rand_int2 = np.random.randint(P)
+#    stim_test = stims[:,rand_int2]
+#    stab = labels[rand_int2]*np.matmul(w_hebb,)
     
 """Test the readout error from training with centroids"""
 #N_list = [500,1000,1500,2000]

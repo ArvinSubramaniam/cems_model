@@ -125,7 +125,7 @@ def simplest_possible_hebbian(N,P,d_in=0.0):
 #plt.show()
 
 
-def erf_full(T,ds):
+def erf_full1(T,ds):
     res = integrate.dblquad(gaussian_func_2dim, T, np.inf, lambda x: lower_bound(T,ds,x), lambda x: np.inf)
     return res[0]
 
@@ -143,7 +143,7 @@ def compute_delta_out2(patt,patt_test):
 def hebbian_mixed_layer(N,P,H,th,d_in=0.0):
     n_real = 50
     errors = []
-    len_test = int(0.2*P)
+    len_test = 10
     for j in range(n_real):
         stim = make_patterns(N,P)
         labels = np.zeros(P)
@@ -174,9 +174,10 @@ def hebbian_mixed_layer(N,P,H,th,d_in=0.0):
         o_spars = 0.5*(np.sign(h)+1)
         f = compute_sparsity(o_spars[:,np.random.randint(P)])
         print("sparsity is",f)
-        o_test = np.sign(h_test)
+        #o_test = np.sign(h_test)
+        o_test = 0.5*(np.sign(h) + 1)
         
-        w_hebb = np.matmul(o,labels) 
+        w_hebb = np.matmul(o_spars,labels) 
         #print("shape hebbian weights",w_hebb.shape)
         
         for m in range(len_test):
@@ -199,13 +200,10 @@ def hebbian_mixed_layer(N,P,H,th,d_in=0.0):
     
     d_out = np.mean(d_outs)
     print("d_out is",d_out)
-    d_theory = 4*erf_full(th,d_in)
+    #d_theory = 4*erf_full1(th,d_in)
+    denom = f*(1-f)
+    d_theory = (1/denom)*erf_full(th,d_in,f)
     print("d_theory is",d_theory)
-    
-    #four_point_corr = (1-2*erf1(th))**(2)
-    four_point_corr = (1-0.5*d_theory)**(2)
-    print("four point corr is",four_point_corr)
-    
     
     snr = ((1-0.5*d_theory)**(2))/(P*(four_point_corr + 1/H))
     err_theory = erf1(np.sqrt(snr))
@@ -213,73 +211,76 @@ def hebbian_mixed_layer(N,P,H,th,d_in=0.0):
     
     return err_mean, err_std, err_theory
 
-N=1000
-P=2500
-H=2000
-th=1.5
-delta = 0.1
-err_mean, err_std, err_theory = hebbian_mixed_layer(N,P,H,th,d_in=delta)
-print("error mean",err_mean,"err_std",err_std,"err_theory",err_theory)
+#N=1000
+#P=2500
+#H=2000
+#th=1.5
+#delta = 0.1
+#err_mean, err_std, err_theory = hebbian_mixed_layer(N,P,H,th,d_in=delta)
+#print("error mean",err_mean,"err_std",err_std,"err_theory",err_theory)
 
 
 ###CHECK DISTANCE
-#N=100
-#P=100
-#H=200
-#thetas = [0.1,1.0,1.9]
-#sparsities = np.zeros(len(thetas))
-#d_list = np.linspace(0.1,0.9,9)
-#d_theorys = np.zeros((len(thetas),len(d_list)))
-#d_emps = np.zeros((len(thetas),len(d_list)))
-#for k,t in enumerate(thetas):
-#    th = t
-#    for j,d in enumerate(d_list):
-#        d_in = d
-#        stim = make_patterns(N,P)
-#        patts_test = np.zeros((N,10))
-#        int_test = []
-#        for i in range(10):
-#            rand_int = np.random.randint(P)
-#            int_test.append(rand_int)
-#            stim_typ = stim[:,rand_int]
-#            patt_test = flip_patterns_cluster(stim_typ,d_in)
-#            d_check = compute_delta_out2(stim_typ,patt_test)
-#            patts_test[:,i] = patt_test
-#        
-#        h,h_test = random_proj_generic_test(H,stim,patts_test,th)      
-#        o = np.sign(h)
-#        o_spars = 0.5*(np.sign(h)+1)
-#        o_test = np.sign(h_test)
-#        o_test_spars = 0.5*(np.sign(h)+1)
-#        
-#        spars = compute_sparsity(o_spars[:,np.random.randint(P)])
-#        sparsities[k] = spars
-#        
-#        o1 = o[:,int_test[0]]
-#        o1_test = o_test[:,0]
-#        d_out = compute_delta_out2(o1,o1_test)
-#        print("d_out is",d_out)
-#        
-#        d_theory = 4*erf_full(th,d_in)
-#        print("d_theory is",d_theory)
-#        
-#        d_theorys[k,j] = d_theory
-#        d_emps[k,j] = d_out
-#        
-#plt.figure()
-#plt.title(r'Distance at mixed layer, $N=P=100$,$\mathcal{R}=2$',fontsize=12)
-#colors = itertools.cycle(('green','blue','red','black'))
-#colors_ver = itertools.cycle(('lightgreen','lightskyblue','lightcoral','grey'))
-#for k,t in enumerate(thetas):
-#    clr = next(colors)
-#    clr_theory = next(colors_ver)
-#    cod = np.round(sparsities[k],3)
-#    plt.plot(d_list,d_emps[k,:],'o',color=clr,label=r'$f = {}$'.format(cod))
-#    plt.plot(d_list,d_theorys[k,:],'--',color=clr_theory)
-#plt.xlabel(r'$\Delta \xi$',fontsize=12)
-#plt.ylabel(r'$\Delta C$',fontsize=12)
-#plt.legend(fontsize=12)
-#plt.show()
+N=100
+P=100
+H=200
+thetas = [0.1,1.0,1.9]
+sparsities = np.zeros(len(thetas))
+d_list = np.linspace(0.1,0.9,9)
+d_theorys = np.zeros((len(thetas),len(d_list)))
+d_emps = np.zeros((len(thetas),len(d_list)))
+for k,t in enumerate(thetas):
+    th = t
+    for j,d in enumerate(d_list):
+        d_in = d
+        stim = make_patterns(N,P)
+        patts_test = np.zeros((N,10))
+        int_test = []
+        for i in range(10):
+            rand_int = np.random.randint(P)
+            int_test.append(rand_int)
+            stim_typ = stim[:,rand_int]
+            patt_test = flip_patterns_cluster(stim_typ,d_in)
+            d_check = compute_delta_out2(stim_typ,patt_test)
+            patts_test[:,i] = patt_test
+        
+        h,h_test = random_proj_generic_test(H,stim,patts_test,th)      
+        o = np.sign(h)
+        o_spars = 0.5*(np.sign(h)+1)
+        f = compute_sparsity(o[:,np.random.randint(P)])
+        o_test = np.sign(h_test)
+        o_test_spars = 0.5*(np.sign(h)+1)
+        
+        spars = compute_sparsity(o_spars[:,np.random.randint(P)])
+        sparsities[k] = spars
+        
+        o1 = o_spars[:,int_test[0]]
+        o1_test = o_test_spars[:,0]
+        d_out = compute_delta_out2(o1,o1_test)
+        print("d_out is",d_out)
+        
+        #d_theory = 4*erf_full1(th,d_in)
+        denom = f*(1-f)
+        d_theory =(1/denom)*erf_full(th,d_in,f)
+        print("d_theory is",d_theory)
+        
+        d_theorys[k,j] = d_theory
+        d_emps[k,j] = d_out
+        
+plt.figure()
+plt.title(r'Distance at mixed layer, $N=P=100$,$\mathcal{R}=2$',fontsize=12)
+colors = itertools.cycle(('green','blue','red','black'))
+colors_ver = itertools.cycle(('lightgreen','lightskyblue','lightcoral','grey'))
+for k,t in enumerate(thetas):
+    clr = next(colors)
+    clr_theory = next(colors_ver)
+    cod = np.round(sparsities[k],3)
+    plt.plot(d_list,d_emps[k,:],'o',color=clr,label=r'$f = {}$'.format(cod))
+    plt.plot(d_list,d_theorys[k,:],'--',color=clr_theory)
+plt.xlabel(r'$\Delta \xi$',fontsize=12)
+plt.ylabel(r'$\Delta C$',fontsize=12)
+plt.legend(fontsize=12)
+plt.show()
 
 
 ###FULL SWEEP
