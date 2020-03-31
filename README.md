@@ -12,7 +12,8 @@ The code here describes results in "Cortical Models of Expansive Non-linear Mixe
  
  (d) context_dep_capacity.py - simulations for the CDP
  
-## 2. hebbian_readout.py - functions that implement two forms of simples Hebbain learning (Appendix of Chapter 4)
+## 2. hebbian_readout.py
+- Functions that implement two forms of simples Hebbian learning (Appendix of Chapter 4)
  
 ## 3. Unimodal model: (Chapters 4 and 5.1)
 
@@ -22,7 +23,8 @@ The code here describes results in "Cortical Models of Expansive Non-linear Mixe
  
  (c) relu_nonlinearity.py - Order parameters, dimensionality and readout error for ReLU non-linearity (Ch. 5.1)
  
-## 4. dimensionality_disentanglement.py - functions that calculate dimensionality empirically and theoretically (Chapter 4)
+## 4. dimensionality_disentanglement.py 
+- Functions that calculate dimensionality empirically and theoretically (Chapters 4 and 5)
 
 ## 5. Multi-modal model: (Chapters 3 and 5)
 
