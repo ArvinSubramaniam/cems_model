@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Dimensionality and disentanglement
+Dimensionality plots
 """
 from perceptron_capacity_conic import *
 from scipy import integrate
 from random_expansion import *
 from perceptron_cap_fix_rank import low_rank_reconst
 
+
+gaussian_func = lambda x: (1/np.sqrt(2*np.pi))*np.exp(-0.5*x**(2))
+
+def erf1(T):
+    res = integrate.quad(gaussian_func, T, np.inf)
+    return res[0]
 
 def flip(stim,pm=True):
     """
@@ -165,7 +171,7 @@ def compute_pr_theory_sim(o,th,N,pm=False):
     return pr_emp, pr_theory, fp_corr_theory
 
 
-run_dimensionality = True
+run_dimensionality = False
 if run_dimensionality:
     N=100
     P=200

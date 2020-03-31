@@ -42,6 +42,9 @@ def arrange_composite_form(stim,cont1,cont2):
     return mat_big
 
 def decompose_from_composite(stim_eff,N,M,P,K):
+    """
+    To decompose composite pattern matrix into stimuli and contexts
+    """
     stim = np.zeros((N,P))
     cont1 = np.zeros((M,K))
     cont2 = np.zeros((M,K))
@@ -189,8 +192,7 @@ def generate_order_two_mixed_test(H,N,M,P,K,d_stim,d_cont,len_test=0.1):
             tile_list_test[:,count1-1] = h_mix1_test
             
     h[:int(H/2),:] = np.repeat(tile_list,K,axis=1)
-    h_test[:int(H/2),:] = np.repeat(tile_list_test,K,axis=1)
-    
+    h_test[:int(H/2),:] = np.repeat(tile_list_test,K,axis=1)  
   
     for l in range(K):
         count2+=1
@@ -207,13 +209,30 @@ def generate_order_two_mixed_test(H,N,M,P,K,d_stim,d_cont,len_test=0.1):
             #h2t = np.repeat(np.reshape(h_mix2,(int(H/2),1)),K,axis=1) #REPEAT (xi,eta) mixing K times for each P
             h2t = np.tile(np.reshape(h_mix2,(int(H/2),1)),K)
             h2test = np.tile(np.reshape(h_mix2_test,(int(H/2),1)),K)
+            print("indices in tile_list2",p*K,(p+1)*K)
             tile_list2[:,p*K:(p+1)*K] = h2t #K spacing P times = PK
             tile_list2_test[:,p*K:(p+1)*K] = h2test #K spacing P times = PK
+        
+        print("indices in h",l*P*K,(l+1)*P*K)
         h[int(H/2):,l*P*K:(l+1)*P*K] = tile_list2
         h_test[int(H/2):,l*P*K:(l+1)*P*K] = tile_list2_test
 
     
     return h, h_test
+
+
+N=100
+M=100
+P=50
+K=2
+H=2100
+th=0.8
+h,h_test = generate_order_two_mixed_test(H,N,M,P,K,0.1,0.1)
+o = 0.5*(np.sign(h) + 1)
+rank = LA.matrix_rank(o)
+print("rank is",rank)
+w,succ = perceptron_storage(o)
+
 
 
 def generate_order_one_mixed_test(H,N,M,P,K,d_stim,d_cont):
@@ -300,15 +319,15 @@ def generate_order_one_mixed_test(H,N,M,P,K,d_stim,d_cont):
 
 #N=100
 #M=100
-#P=5
+#P=50
 #K=2
 #H=2100
 #th=0.8
 #h,h_test = generate_order_two_mixed_test(H,N,M,P,K,0.1,0.1)
 #o = 0.5*(np.sign(h) + 1)
+#rank = LA.matrix_rank(o)
+#print("rank is",rank)
 #w,succ = perceptron_storage(o)
-
-
 
 
 ######BELOW THIS IS HEBBIAN LEARNING##########
