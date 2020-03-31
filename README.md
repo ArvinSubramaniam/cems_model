@@ -1,6 +1,6 @@
 # cems_model
 
-The code here describes results in "Cortical Models of Expansive Non-linear Mixed Selectivity" form my Masters thesis. The files can be roughly divided as follows:
+The code here provides results for "Cortical Models of Expansive Non-linear Mixed Selectivity" from my Masters thesis. The files can be roughly divided as follows:
 
 ## 1. Capacity: (Chapters 2 and 3)
 
