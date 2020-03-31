@@ -9,6 +9,7 @@ Capacity of CDP with random projections
 from fusi_barak_rank import *
 from context_dep_capacity import *
 from perceptron_capacity_conic import make_patterns, perceptron_storage
+import numpy as np
 from numpy import linalg as LA
 import random
 import scipy as sp
