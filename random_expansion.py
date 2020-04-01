@@ -79,7 +79,24 @@ def generate_pattern_context3(stim,cont1,cont2):
     return mat 
 
 
-def random_project_hidden_layer(stim,cont,H,sc=1,sp=1,noise=False,noise_amp=0.1):
+def generate_random_sparse_matrix(H,N,Kd,Nm=1):
+    """
+    Args:
+        Kd: The number of input neurons of which there exists pre-synaptic arborizations
+        Nm: Number of modalities
+    """
+    mat_out = np.zeros((H,N))
+    for i in range(H):
+        row = np.random.normal(0,np.sqrt(Nm)/np.sqrt(Kd),Kd)
+        row0 = np.zeros(N)
+        ints =  np.random.choice(N,Kd,replace=True)
+        row0[ints] = row
+        mat_out[i] = row0
+        
+    return mat_out
+    
+
+def random_project_hidden_layer(stim,cont,H,sc=1,sp=1,noise=False,noise_amp=0.1,sparse=False):
     """
     Takes in contextual inputs and randomly projects them onto hidden layer.
     Draw matrices RANDOMLY FOR EACH P AND K
@@ -90,6 +107,7 @@ def random_project_hidden_layer(stim,cont,H,sc=1,sp=1,noise=False,noise_amp=0.1)
         sp: Variance in pattern projection
         sc: Variance in context projection
         noise: False (no noise) by default
+        sparse: If sprase feed-forward distribution instead
     """
     P = stim.shape[1]
     K = cont.shape[1]
@@ -232,18 +250,18 @@ def run_pipeline_mixedlayer_multim(stim,cont,cont2,H,theta=0.,annealed=False,str
     return h, out, cod
 
 
-def random_proj_generic(H,patt,thres=0.,bool_=True):
+def random_proj_generic(H,patt,thres=0.,sparse=False):
     """
     Perform generic random projection with a H x N matrix
     """
     N = patt.shape[0]
+    Kd = 7
     h = np.zeros((H,patt.shape[1]))
-    if bool_:
-        wrand = np.random.normal(0,1/np.sqrt(N),(H,N))
-        patt_in = patt
+    if sparse:
+        wrand = generate_random_sparse_matrix(H,N,Kd)
     else:
-        wrand = np.random.normal(0,2/np.sqrt(N),(H,N))
-        patt_in = patt - 0.5
+        wrand = np.random.normal(0,1/np.sqrt(N),(H,N))
+    patt_in = patt
     
     for p in range(patt.shape[1]):
         h[:,p] = np.matmul(wrand,patt_in[:,p]) - thres
@@ -251,7 +269,15 @@ def random_proj_generic(H,patt,thres=0.,bool_=True):
     return h
 
 
-
+###CHECK THAT SPARSE WEIGHT HAS THE SAME NORM
+#N=100
+#P=50
+#H=2000
+#stim = make_patterns(N,P)
+#th=0.0
+#h = random_proj_generic(H,stim,th,sparse=True)
+#norm = (1/H)*np.dot(h[:,0],h[:,0])
+#print("norm",norm)
 
 
 

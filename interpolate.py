@@ -178,20 +178,23 @@ def generate_order_two_mixed_test(H,N,M,P,K,d_stim,d_cont,len_test=0.1):
     tile_list_test = np.zeros((int(H/2),P*K))
     count1=0
     count2=0
-    for p in range(P):
-        h_stim = np.matmul(mat1,stim[:,p])
-        h_stim_test = np.matmul(mat1,stim_test[:,p])
-        for k in range(K):
+    for k in range(K):
+        h_cont1 = np.matmul(mat2,cont1[:,k])
+        h_cont1_test = np.matmul(mat2,cont1_test[:,k])
+        for p in range(P):
             count1+=1
-            #print("CONT1",k)
-            h_cont1 = np.matmul(mat2,cont1[:,k])
-            h_cont1_test = np.matmul(mat2,cont1_test[:,k])
+#            print("count1",count1)
+#            print("pair of (p,k)",(p,k))
+            h_stim = np.matmul(mat1,stim[:,p])
+            h_stim_test = np.matmul(mat1,stim_test[:,p])
             h_mix1 = h_stim + h_cont1
             h_mix1_test = h_stim_test + h_cont1_test
             tile_list[:,count1-1] = h_mix1
             tile_list_test[:,count1-1] = h_mix1_test
-            
+    
+    print("rank tile_list",LA.matrix_rank(np.sign(tile_list)))
     h[:int(H/2),:] = np.repeat(tile_list,K,axis=1)
+    print("rank h",LA.matrix_rank(np.sign(h[:int(H/2),:])))
     h_test[:int(H/2),:] = np.repeat(tile_list_test,K,axis=1)  
   
     for l in range(K):
@@ -206,32 +209,19 @@ def generate_order_two_mixed_test(H,N,M,P,K,d_stim,d_cont,len_test=0.1):
             h_stim_test = np.matmul(mat1,stim_test[:,p])
             h_mix2 = h_stim + h_cont2
             h_mix2_test = h_stim_test + h_cont2_test
-            #h2t = np.repeat(np.reshape(h_mix2,(int(H/2),1)),K,axis=1) #REPEAT (xi,eta) mixing K times for each P
-            h2t = np.tile(np.reshape(h_mix2,(int(H/2),1)),K)
+            h2t = np.tile(np.reshape(h_mix2,(int(H/2),1)),K) #Gives upper sub-block of length K
             h2test = np.tile(np.reshape(h_mix2_test,(int(H/2),1)),K)
-            print("indices in tile_list2",p*K,(p+1)*K)
+            #print("indices in tile_list",p*K,(p+1)*K)
             tile_list2[:,p*K:(p+1)*K] = h2t #K spacing P times = PK
             tile_list2_test[:,p*K:(p+1)*K] = h2test #K spacing P times = PK
         
-        print("indices in h",l*P*K,(l+1)*P*K)
+        #print("indices in h",l*P*K,(l+1)*P*K)
         h[int(H/2):,l*P*K:(l+1)*P*K] = tile_list2
         h_test[int(H/2):,l*P*K:(l+1)*P*K] = tile_list2_test
 
     
     return h, h_test
 
-
-N=100
-M=100
-P=50
-K=2
-H=2100
-th=0.8
-h,h_test = generate_order_two_mixed_test(H,N,M,P,K,0.1,0.1)
-o = 0.5*(np.sign(h) + 1)
-rank = LA.matrix_rank(o)
-print("rank is",rank)
-w,succ = perceptron_storage(o)
 
 
 
@@ -317,18 +307,57 @@ def generate_order_one_mixed_test(H,N,M,P,K,d_stim,d_cont):
     return h_big, h_big_test
 
 
+###To get rank
+
+#N=100
 #N=100
 #M=100
 #P=50
-#K=2
-#H=2100
-#th=0.8
-#h,h_test = generate_order_two_mixed_test(H,N,M,P,K,0.1,0.1)
-#o = 0.5*(np.sign(h) + 1)
-#rank = LA.matrix_rank(o)
-#print("rank is",rank)
-#w,succ = perceptron_storage(o)
-
+#K_list = np.linspace(1,10,10)
+#ranks1 = np.zeros(len(K_list))
+#ranks2 = np.zeros(len(K_list))
+#ranks3 = np.zeros(len(K_list))
+#for i,K_in in enumerate(K_list):
+#    K = int(K_in)
+#    H=6000
+#    th=0.8
+#    print('K',K)
+#    h1,h1_test = generate_order_one_mixed_test(H,N,M,P,K,0.1,0.1)
+#    o1 = 0.5*(np.sign(h1) + 1)
+#    rank = LA.matrix_rank(o1)
+#    ranks1[i] = rank
+#    h2,h2_test = generate_order_two_mixed_test(H,N,M,P,K,0.1,0.1)
+#    o2 = 0.5*(np.sign(h2) + 1)
+#    rank2 = LA.matrix_rank(o2)
+#    ranks2[i] = rank2
+#    h3,h3_test = generate_order_full_mixed_test(H,N,M,P,K,0.1,0.1)
+#    o3 = 0.5*(np.sign(h3) + 1)
+#    rank3 = LA.matrix_rank(o3)
+#    ranks3[i] = rank3
+#
+#ranks1_theory = np.asarray(len(K_list)*[P]) + 2*np.asarray(K_list) - np.asarray(len(K_list)*[2])
+#ranks2_theory = P*np.asarray(K_list)
+#ranks3_theory = P*np.asarray([i**(2) for i in K_list])
+#
+#plt.figure()
+#import matplotlib.ticker as ticker
+##ax = plt.subplot(121)
+#plt.title(r'Rank,$N=M=100$,$P=50$,$N_{c}=6000$',fontweight="bold",fontsize=12)
+#plt.plot(K_list,ranks1,'s',markersize=8,color='blue',label=r'$\mathcal{M}=1$')
+#plt.plot(K_list,ranks1_theory,'--',color='lightblue',label=r'$P + 2K - 2$')
+#plt.plot(K_list,ranks2,'s',markersize=8,color='red',label=r'$\mathcal{M}=2$')
+#plt.plot(K_list,ranks2_theory,'--',color='lightcoral',label=r'$PK$')
+#plt.plot(K_list,ranks3,'s',markersize=8,color='green',label=r'$\mathcal{M}=3$')
+#plt.plot(K_list,ranks3_theory,'--',color='lightgreen',label=r'$PK^{2}$')
+#start1, end1 = ax.get_xlim()
+#plt.ylabel(r'$Rank$',fontsize=16)
+#plt.xlabel(r'$K$',fontsize=16)
+##diff = K_list[3] - K_list[4]
+##print("start,end,diff",start1,end1,diff)
+##ax.set_xticks(np.arange(start1, end1, 3*diff))
+##ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%.2E'))
+#plt.legend()
+#plt.show()
 
 ######BELOW THIS IS HEBBIAN LEARNING##########
 
