@@ -77,23 +77,6 @@ def generate_pattern_context3(stim,cont1,cont2):
         
             
     return mat 
-
-
-def generate_random_sparse_matrix(H,N,Kd,Nm=1):
-    """
-    Args:
-        Kd: The number of input neurons of which there exists pre-synaptic arborizations
-        Nm: Number of modalities
-    """
-    mat_out = np.zeros((H,N))
-    for i in range(H):
-        row = np.random.normal(0,np.sqrt(Nm)/np.sqrt(Kd),Kd)
-        row0 = np.zeros(N)
-        ints =  np.random.choice(N,Kd,replace=True)
-        row0[ints] = row
-        mat_out[i] = row0
-        
-    return mat_out
     
 
 def random_project_hidden_layer(stim,cont,H,sc=1,sp=1,noise=False,noise_amp=0.1,sparse=False):
@@ -250,6 +233,23 @@ def run_pipeline_mixedlayer_multim(stim,cont,cont2,H,theta=0.,annealed=False,str
     return h, out, cod
 
 
+def generate_random_sparse_matrix(H,N,Kd,Nm=1):
+    """
+    Args:
+        Kd: The number of input neurons of which there exists pre-synaptic arborizations
+        Nm: Number of modalities
+    """
+    mat_out = np.zeros((H,N))
+    for i in range(H):
+        row = np.random.normal(0,1/np.sqrt(N),Kd)
+        row0 = np.zeros(N)
+        ints =  np.random.choice(N,Kd,replace=True)
+        row0[ints] = row
+        mat_out[i] = row0
+        
+    return mat_out
+
+
 def random_proj_generic(H,patt,thres=0.,sparse=False):
     """
     Perform generic random projection with a H x N matrix
@@ -269,13 +269,14 @@ def random_proj_generic(H,patt,thres=0.,sparse=False):
     return h
 
 
+
 ###CHECK THAT SPARSE WEIGHT HAS THE SAME NORM
 #N=100
 #P=50
 #H=2000
 #stim = make_patterns(N,P)
 #th=0.0
-#h = random_proj_generic(H,stim,th,sparse=True)
+#h = random_proj_generic(H,stim,th,sparse=True,rand_=False)
 #norm = (1/H)*np.dot(h[:,0],h[:,0])
 #print("norm",norm)
 

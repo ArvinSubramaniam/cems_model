@@ -102,7 +102,7 @@ def compute_delta_out(out,patt_ref):
     return (1/out.shape[0])*diff
 
 
-def random_proj_generic_test(H,patt,test,thres,bool_=True):
+def random_proj_generic_test(H,patt,test,thres,bool_=True,sparse=False):
     """
     
     Same as random_proj_generic but for both stim and test
@@ -111,7 +111,11 @@ def random_proj_generic_test(H,patt,test,thres,bool_=True):
     h = np.zeros((H,patt.shape[1]))
     h_test = np.zeros((H,test.shape[1]))
     
-    wrand = np.random.normal(0,1/np.sqrt(N),(H,N))
+    if sparse:
+        Kd=7
+        wrand = generate_random_sparse_matrix(H,N,Kd)
+    else:
+        wrand = np.random.normal(0,1/np.sqrt(N),(H,N))
     patt_in = patt
     test_in = test
         
@@ -127,6 +131,7 @@ def random_proj_generic_test(H,patt,test,thres,bool_=True):
 def compute_pr_theory_sim(o,th,N,pm=False):
     """
     Args:
+        o: Should be mean subtracted
         f: Sparsity
         pm: If {+,-} at mixed layer instead
     
@@ -162,7 +167,9 @@ def compute_pr_theory_sim(o,th,N,pm=False):
     fp_corr_theory = q3_theory_in
     
     ratio1 = q2_theory/(q1_theory)**(2)
-    denom_theory1 = (1/(H*P))*(q2_theory/(q1_theory)**(2)) + 1/P + 1/H + (q3_theory_in/((q1_theory)**(2)))
+    print("ratio1",ratio1)
+    denom_theory1 = (1/(H*P))*(ratio1) + 1/P + 1/H + (q3_theory_in/((q1_theory)**(2)))
+    print("denom1_theory",denom_theory1)
     
     pr_theory = numer_theory/denom_theory1
     
