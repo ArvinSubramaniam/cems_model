@@ -5,7 +5,7 @@ Capacity of context dependent perceptron
 """
 
 import sys
-#sys.path.append('/Users/arvingopal5794/Documents/cognitive_control/context_rank_spectra')
+sys.path.append('/Users/arvingopal5794/Documents/masters_project/cems_model')
 from fusi_barak_rank import *
 from perceptron_capacity_conic import make_patterns, perceptron_storage
 from numpy import linalg as LA
@@ -15,7 +15,6 @@ from scipy.optimize import linprog
 from scipy.special import comb
 from scipy.special import binom
 import itertools
-import pulp
 from matplotlib.lines import Line2D
 
 

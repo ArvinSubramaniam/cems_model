@@ -41,7 +41,7 @@ def compute_i4(th,N):
     return t1 + t2
 
 
-def compute_pr_relu(o,N):
+def compute_pr_relu(o,th,N):
     H  = o.shape[0]
     P = o.shape[1]
     denom1 = 1/(H*P)
@@ -200,15 +200,50 @@ def hebbian_mixed_layer_relu(H,N,P,th,ds=0.1):
     
     return snr, err_mean, err_std, err_theory, erf1(th)
 
-#N=100
-#P=50
-#H=500
-#th=2.8
-#d_stim = 0.1
-#snr, err_mean, err_std, err_theory, f = hebbian_mixed_layer_relu(H,N,P,th,ds=d_stim)
-#print("empirical err",err_mean)
-#print("err std",err_std)
-#print("theoretical err",err_theory)
+run_dimensionality_relu = False
+if run_dimensionality_relu:
+    N=100
+    P=200
+    H=2000
+    stim = make_patterns(N,P)
+    stim_test = np.zeros((N,P))
+    for p in range(stim.shape[1]):
+        stim_test[:,p] = flip_patterns_cluster(stim[:,p],0.1)
+    thress = np.linspace(0.1,3.2,10)
+    pr_emps = np.zeros(len(thress))
+    pr_theorys = np.zeros(len(thress))
+    fp_corrs = np.zeros(len(thress))
+    cods = np.zeros(len(thress))
+    for i,th in enumerate(thress):
+        print("th",th)
+        #h,h_test = random_proj_generic_test(H,stim,stim_test,th)
+        h = random_proj_generic(H,stim)
+        o = relu_nonlinearity(h,th)
+        #o_spars = 0.5*(o + 1)
+        f = compute_sparsity(o[:,np.random.randint(P)])
+        o_spars_in = o
+        cov = np.matmul(o_spars_in,o_spars_in.T)
+        print("f is",f)
+        cods[i] = f
+        #o_test = 0.5*(np.sign(h_test) + 1)
+        pr_emp = compute_pr_relu(o_spars_in,th,N)
+        pr_theory = compute_pr_eigvals(cov)
+        fp_corr = compute_i4(th,N)
+        print("pr_theory",pr_theory)
+        print("pr_emp",pr_emp)
+        pr_emps[i] = pr_emp
+        pr_theorys[i] = pr_theory
+        fp_corrs[i] = fp_corr
+        
+    plt.figure()
+    import matplotlib.ticker as ticker
+    plt.title(r'Dimensionality',fontweight="bold",fontsize=16)
+    plt.plot(fp_corrs,pr_emps,'s',markersize=8,color='blue')
+    plt.plot(fp_corrs,pr_theorys,'--',color='lightblue')
+    plt.ylabel(r'$\mathcal{D}$',fontsize=16)
+    plt.xlabel(r'$f$',fontsize=16)
+    plt.legend()
+    plt.show()
 
 run_sweep_ratio = False
 """

@@ -178,8 +178,68 @@ def compute_pr_theory_sim(o,th,N,pm=False):
     return pr_emp, pr_theory, fp_corr_theory
 
 
-run_dimensionality = False
-if run_dimensionality:
+
+###EMPIRICALLY CALCULATE EXCESS OVERLAPS
+def compute_emp_excess_over(o,H,N,th):
+    """
+    Empirically calculates excess overlap based on Eq (2) from Babadi,Sompolinsky
+
+    """
+    f = erf1(th)
+    list_ = []
+    for m in range(o.shape[1]):
+        for n in range(o.shape[1]):
+            if m != n:
+                over = np.dot(o[:,m],o[:,n])/H
+                #print("over",over)
+                over2 = over - f**(2)
+                list_.append(over2**(2))
+                
+    o_av = np.mean(list_)
+    #print("o_av",o_av)
+    o_av_div = o_av/(f**(2) * (1-f)**(2))
+    diff =  o_av_div - 1/H
+    #print("diff",diff)
+    
+    return N*diff
+    
+
+# N=100
+# P=100
+# H=2000
+# thress = np.linspace(0.1,3.1,20)
+# cods = np.zeros(len(thress))
+# eo_emps =  np.zeros(len(thress))
+# eo_theorys = np.zeros(len(thress))
+# for i,th in enumerate(thress):
+#     stim = make_patterns(N,P)
+#     h = random_proj_generic(H,stim,th)
+#     o = 0.5*(np.sign(h) + 1)
+#     cod = erf1(th)
+#     cods[i] = cod
+#     eo = np.exp(-2*th**(2))/((2*np.pi)**(2) * cod**(2)*(1-cod)**(2))
+#     eo_emp = compute_emp_excess_over(o,H,N,th)
+#     eo_theorys[i] = eo
+#     eo_emps[i] = eo_emp
+
+
+# plt.figure()
+# plt.title(r'Empirical vs theoretical $Q^{2}$',fontsize=14)
+# plt.plot(cods,eo_emps,'s',color='blue',label=r'Emprical')
+# plt.plot(cods,eo_theorys,'--',color='lightblue',label=r'Theory')
+# plt.xlabel(r'$f$',fontsize=14)
+# plt.ylabel(r'$Q^{2}$',fontsize=14)
+# plt.legend()
+# plt.show()
+
+
+def func_sweep_cods(N,P,H,th_upper=2.8,th_lower=0.1):
+    """
+    Runs through different values of the threshold (sparseness) and returns 
+    1. pr_emp : Empirical dimensionality
+    2. pr_th : Theoretical dimensionality
+    3. fp_corr : Four-point correlation
+    """
     N=100
     P=200
     H=2000
@@ -187,7 +247,7 @@ if run_dimensionality:
     stim_test = np.zeros((N,P))
     for p in range(stim.shape[1]):
         stim_test[:,p] = flip_patterns_cluster(stim[:,p],0.1)
-    thress = np.linspace(0.1,2.8,20)
+    thress = np.linspace(th_lower,th_upper,20)
     pr_emps = np.zeros(len(thress))
     pr_theorys = np.zeros(len(thress))
     fp_corrs = np.zeros(len(thress))
@@ -201,7 +261,7 @@ if run_dimensionality:
         f = compute_sparsity(o_spars[:,np.random.randint(P)])
         o_spars_in = o_spars - f
         print("f is",f)
-        cods[i] = f
+        cods[i] = erf1(th)
         #o_test = 0.5*(np.sign(h_test) + 1)
         pr_emp,pr_th,fp_corr = compute_pr_theory_sim(o_spars_in,th,N,pm=False)
         print("pr_theory",pr_th)
@@ -210,38 +270,192 @@ if run_dimensionality:
         pr_theorys[i] = pr_th
         fp_corrs[i] = fp_corr
         
-    plt.figure()
-    import matplotlib.ticker as ticker
-    ax = plt.subplot(121)
-    ax.set_title(r'Dimensionality',fontweight="bold",fontsize=16)
-    ax.plot(fp_corrs,pr_emps,'s',markersize=8,color='blue')
-    ax.plot(fp_corrs,pr_theorys,'--',color='lightblue')
-    start1, end1 = ax.get_xlim()
-    ax.set_ylabel(r'$\mathcal{D}$',fontsize=16)
-    ax.set_xlabel(r'$\frac{\langle \mathcal{I}_{4} \rangle}{\langle q_{2} \rangle^{2}}$',fontsize=16)
-    diff = fp_corrs[3] - fp_corrs[4]
-    print("start,end,diff",start1,end1,diff)
-    ax.set_xticks(np.arange(start1, end1, 3*diff))
-    ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%.2E'))
+    return pr_emps,pr_theorys,fp_corrs,cods
+
+def func_find_fopt(pr_emps,cods):
+    """
+    Finds optimal sparseness given values of dimensionality
+    """
+    arg_ = np.argmax(pr_emps)
+    f_opt = cods[arg_]
+    return f_opt
+
+
+run_dimensionality = False
+if run_dimensionality:
+    N=100
+    P=200
+    H=2000
+    pr_emps,pr_theorys,fp_corrs,cods = func_sweep_cods(N,P,H)
+        
+#    plt.figure()
+#    import matplotlib.ticker as ticker
+#    ax = plt.subplot(121)
+#    ax.set_title(r'Dimensionality',fontweight="bold",fontsize=16)
+#    ax.plot(fp_corrs,pr_emps,'s',markersize=8,color='blue')
+#    ax.plot(fp_corrs,pr_theorys,'--',color='lightblue')
+#    start1, end1 = ax.get_xlim()
+#    ax.set_ylabel(r'$\mathcal{D}$',fontsize=16)
+#    ax.set_xlabel(r'$\frac{\langle \mathcal{I}_{4} \rangle}{\langle q_{2} \rangle^{2}}$',fontsize=16)
+#    diff = fp_corrs[3] - fp_corrs[4]
+#    print("start,end,diff",start1,end1,diff)
+#    ax.set_xticks(np.arange(start1, end1, 3*diff))
+#    ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%.2E'))
+#    
+#    ax2 = plt.subplot(122)
+#    ax2.set_title(r'Re-scaled interference',fontweight="bold",fontsize=16)
+#    ax2.plot(cods,fp_corrs,'s-',markersize=8,color='blue')
+#    start2, end2 = ax2.get_xlim()
+#    diff2 = cods[1] - cods[2]
+#    print("start,end,diff",start2,end2,diff2)
+#    #ax.plot(fp_corrs,pr_theorys,'--',color='lightblue')
+#    ax2.set_xlabel(r'$f$',fontsize=16)
+#    ax2.set_ylabel(r'$\frac{\langle \mathcal{I}_{4} \rangle}{\langle q_{2} \rangle^{2}}$',fontsize=16)
+#    ax2.set_xticks(np.arange(start2, end2, 3*diff2))
+#    ax2.xaxis.set_major_formatter(ticker.FormatStrFormatter('%.2E'))
+#    ax2.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.2E'))
+#    
+#    plt.tight_layout()
+# 
+#    plt.show()
     
-    ax2 = plt.subplot(122)
-    ax2.set_title(r'Re-scaled interference',fontweight="bold",fontsize=16)
-    ax2.plot(cods,fp_corrs,'s-',markersize=8,color='blue')
-    start2, end2 = ax2.get_xlim()
-    diff2 = cods[1] - cods[2]
-    print("start,end,diff",start2,end2,diff2)
-    #ax.plot(fp_corrs,pr_theorys,'--',color='lightblue')
-    ax2.set_xlabel(r'$f$',fontsize=16)
-    ax2.set_ylabel(r'$\frac{\langle \mathcal{I}_{4} \rangle}{\langle q_{2} \rangle^{2}}$',fontsize=16)
-    ax2.set_xticks(np.arange(start2, end2, 3*diff2))
-    ax2.xaxis.set_major_formatter(ticker.FormatStrFormatter('%.2E'))
-    ax2.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.2E'))
+sweep_optimal_sparsity = False
+if sweep_optimal_sparsity:
+    P_list = [10,20,40,80,160,200,400]
+    H_list = list(np.linspace(100,2000,4))
+    N=100
+    f_opts = np.zeros((len(P_list),len(H_list)))
+    for i,P in enumerate(P_list):
+        for j,H_in in enumerate(H_list):
+            H = int(H_in)
+            pr_emps,pr_theorys,fp_corrs,cods = func_sweep_cods(N,P,H)
+            f_opt = func_find_fopt(pr_emps,cods)
+            f_opts[i,j] = f_opt
+    
+    plt.figure()
+    plt.title(r'Variation of $f_{opt}$ with $P$,$N_{c}$')
+    colors = itertools.cycle(('green','blue','red','black'))
+    for i,H_in in enumerate(H_list):
+        rat = H_in/N
+        clr = next(colors)
+        plt.plot(P_list,f_opts[:,i],'s',color=clr,label=r'R = {}'.format(rat))
+    plt.xlabel(r'$P$',fontsize=14)
+    plt.ylabel(r'$f_{opt}$')
+    plt.legend()
+    plt.show()
+    
+def numer_theory(o,th):
+    f = erf1(th)
+    N = o.shape[0]
+    P = o.shape[1]
+    q2 = f*(1-f)
+    q4 = q2**(2)
+    numer = N**(2) * P**(2) * q4 + N * P * q4 + N * P**(2) * q4 + N**(2) * P * q4
+    return numer
+
+def denom_theory(o,th,N):
+    f = erf1(th)
+    H = o.shape[0]
+    P = o.shape[1]
+    q2 = f*(1-f)
+    q4 = q2**(2)
+    eo = (1/N) * np.exp(-2*th**(2))/((2*np.pi)**(2))
+    denom = P*H*q4 + P * H**(2) * q4 + P**(2) * H *q4 + P**(2) * H**(2) * eo
+    return denom
+
+plot_numer_vs_denom = False
+if plot_numer_vs_denom:    
+    N=100
+    P=100
+    stim = make_patterns(N,P)
+    H=2000
+    ths = np.linspace(2.9,3.2,20)
+    cods = np.zeros(len(ths))
+    numer_emps = np.zeros(len(ths))
+    denom_emps = np.zeros(len(ths))
+    numer_theorys = np.zeros(len(ths))
+    denom_theorys = np.zeros(len(ths))
+    diff_numer = np.zeros(len(ths))
+    diff_denom = np.zeros(len(ths))
+    for i,th in enumerate(ths):
+        h = random_proj_generic(H,stim,th)
+        o = 0.5*(np.sign(h) + 1)
+        f = compute_sparsity(o[:,np.random.randint(P)])
+        print("f is",erf1(th))
+        cods[i] = erf1(th)
+        o_in = o - f
+        cov = np.matmul(o_in,o_in.T)
+        cov2 = np.matmul(cov,cov)
+        
+        numer_emp = np.matrix.trace(cov)**(2)
+        print("numer_emp",numer_emp)
+        denom_emp = np.matrix.trace(cov2)
+        print("denom_emp",denom_emp)
+        pr_emp = numer_emp/denom_emp
+        print("pr_emp",pr_emp)
+        numer_th = numer_theory(o_in,th)
+        print("numer_theory",numer_th)
+        denom_th = denom_theory(o_in,th,N)
+        print("denom_theory",denom_th)
+        pr_theory = numer_th/denom_th
+        print("pr_theory",pr_theory)
+        pr_theory2 = compute_pr_theory_sim(o_in,th,N)[1]
+        
+        diff_d = np.abs(denom_emp - denom_th)
+        diff_n = np.abs(numer_emp - numer_th)
+        
+        numer_emps[i] = numer_emp
+        denom_emps[i] = denom_emp
+        numer_theorys[i] = numer_th
+        denom_theorys[i] = denom_th
+        
+        diff_numer[i] = diff_n
+        print("diff_n",diff_n)
+        diff_denom[i] = diff_d
+        print("diff_d",diff_d)
+        
+    fig = plt.figure()
+    ax = fig.add_subplot(121)
+    ax.set_title(r'Numerator')
+    ax.plot(cods,numer_emps,'s',color='blue',label='Emprirical')
+    ax.plot(cods,numer_theorys,'--',color='lightblue',label='Theory')
+    ax.set_yscale('log')
+    ax.set_xlabel(r'$f$',fontsize=14)
+    ax.set_ylabel(r'$(Tr(\mathbf{C}))^{2}$',fontsize=14)
+    ax.legend()
+    
+    ax2 = fig.add_subplot(122)
+    ax2.set_title(r'Denominator')
+    ax2.plot(cods,denom_emps,'s',color='green',label='Emprirical')
+    ax2.plot(cods,denom_theorys,'--',color='lightgreen',label='Theory')
+    ax2.set_yscale('log')
+    ax2.set_xlabel(r'$f$',fontsize=14)
+    ax2.set_ylabel(r'$(Tr(\mathbf{C}^{2}))$',fontsize=14)
+    ax2.legend()
     
     plt.tight_layout()
- 
+    plt.legend()
     plt.show()
-
-
+    
+    fig2 = plt.figure()
+    ax = fig2.add_subplot(121)
+    ax.set_title(r'Difference in numerator')
+    ax.plot(cods,diff_numer,'s',color='blue')
+    ax.set_yscale('log')
+    ax.set_xlabel(r'$f$',fontsize=14)
+    ax.set_ylabel(r'Difference',fontsize=14)
+    
+    ax2 = fig2.add_subplot(122)
+    ax2.set_title(r'Difference in denominator')
+    ax2.plot(cods,diff_denom,'s',color='green')
+    ax2.set_yscale('log')
+    ax2.set_xlabel(r'$f$',fontsize=14)
+    ax2.set_ylabel(r'Difference',fontsize=14)
+    ax2.legend()
+    
+    plt.tight_layout()
+    plt.legend()
+    plt.show()
 
 
 

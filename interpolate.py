@@ -284,61 +284,137 @@ def generate_order_one_mixed_test(H,N,M,P,K,d_stim,d_cont):
     h_big_test[int(H/3):int(2*H/3),:] = arr_cont1_in_test
     h_big_test[int(2*H/3):,:] = arr_cont2_test
     
-    
     return h_big, h_big_test
 
 
-###To get rank
+###To get rank as a function of sparsity
+# N=100
+# M=N
+# P=100
+# K=3
+# H_list = list(np.linspace(200,1000,4))
+# thress = np.linspace(0.1,2.3,30)
+# cods = [erf1(t) for t in thress]
+# ranks = np.zeros((len(H_list),len(thress)))
+# for i,H_in in enumerate(H_list): 
+#     for j,th in enumerate(thress):
+#         H = int(H_in)
+#         stim = make_patterns(N,P)
+#         h,h_test = generate_order_full_mixed_test(H,N,M,P,K,0.1,0.1,len_test=1.0)
+#         o = np.sign(h - th)
+#         o_spars = 0.5*(o + 1)
+#         rank = LA.matrix_rank(o_spars)
+#         ranks[i,j] = rank
+        
+# plt.figure()
+# plt.title(r'Rank for different $N_{c}$,$P=100$,$K=3$')
+# colors = itertools.cycle(('green','blue','red','black'))
+# for i,H_in in enumerate(H_list):
+#     clr = next(colors)
+#     rat = H_in/N
+#     plt.plot(cods,ranks[i,:],'s',label=r'$R={}$'.format(np.round(rat,3)),color=clr)
+# plt.xlabel(r'$f$',fontsize=14)
+# plt.ylabel(r'Rank',fontsize=14)
+# plt.legend()
+# plt.show()
+    
 
-#N=100
-#N=100
-#M=100
-#P=50
-#K_list = np.linspace(1,10,10)
-#ranks1 = np.zeros(len(K_list))
-#ranks2 = np.zeros(len(K_list))
-#ranks3 = np.zeros(len(K_list))
-#for i,K_in in enumerate(K_list):
-#    K = int(K_in)
-#    H=6000
-#    th=0.8
-#    print('K',K)
-#    h1,h1_test = generate_order_one_mixed_test(H,N,M,P,K,0.1,0.1)
-#    o1 = 0.5*(np.sign(h1) + 1)
-#    rank = LA.matrix_rank(o1)
-#    ranks1[i] = rank
-#    h2,h2_test = generate_order_two_mixed_test(H,N,M,P,K,0.1,0.1)
-#    o2 = 0.5*(np.sign(h2) + 1)
-#    rank2 = LA.matrix_rank(o2)
-#    ranks2[i] = rank2
-#    h3,h3_test = generate_order_full_mixed_test(H,N,M,P,K,0.1,0.1)
-#    o3 = 0.5*(np.sign(h3) + 1)
-#    rank3 = LA.matrix_rank(o3)
-#    ranks3[i] = rank3
-#
-#ranks1_theory = np.asarray(len(K_list)*[P]) + 2*np.asarray(K_list) - np.asarray(len(K_list)*[2])
-#ranks2_theory = P*np.asarray(K_list)
-#ranks3_theory = P*np.asarray([i**(2) for i in K_list])
-#
-#plt.figure()
-#import matplotlib.ticker as ticker
-##ax = plt.subplot(121)
-#plt.title(r'Rank,$N=M=100$,$P=50$,$N_{c}=6000$',fontweight="bold",fontsize=12)
-#plt.plot(K_list,ranks1,'s',markersize=8,color='blue',label=r'$\mathcal{M}=1$')
-#plt.plot(K_list,ranks1_theory,'--',color='lightblue',label=r'$P + 2K - 2$')
-#plt.plot(K_list,ranks2,'s',markersize=8,color='red',label=r'$\mathcal{M}=2$')
-#plt.plot(K_list,ranks2_theory,'--',color='lightcoral',label=r'$PK$')
-#plt.plot(K_list,ranks3,'s',markersize=8,color='green',label=r'$\mathcal{M}=3$')
-#plt.plot(K_list,ranks3_theory,'--',color='lightgreen',label=r'$PK^{2}$')
-#start1, end1 = ax.get_xlim()
-#plt.ylabel(r'$Rank$',fontsize=16)
-#plt.xlabel(r'$K$',fontsize=16)
-##diff = K_list[3] - K_list[4]
-##print("start,end,diff",start1,end1,diff)
-##ax.set_xticks(np.arange(start1, end1, 3*diff))
-##ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%.2E'))
-#plt.legend()
-#plt.show()
+####PLOT OF DELTA M
+N=100
+M=100
+P=20
+K=4
+H=2100
+#thress = np.linspace(0.1,3.1,20)
+thress = [0.8]
+cods = np.zeros(len(thress))
+eo_emps_one =  np.zeros(len(thress))
+eo_theorys_one = np.zeros(len(thress))
+eo_emps_two =  np.zeros(len(thress))
+eo_theorys_two = np.zeros(len(thress))
+eo_emps_three =  np.zeros(len(thress))
+eo_theorys_three = np.zeros(len(thress))
+delta_ms_one = np.zeros(len(thress))
+delta_ms_two = np.zeros(len(thress))
+delta_ms_three = np.zeros(len(thress))
+
+delta_theory_one =  np.zeros(len(thress))
+delta_theory_two =  np.zeros(len(thress))
+delta_theory_three = np.zeros(len(thress))
+
+for i,th in enumerate(thress):
+    stim = make_patterns(N,P)
+    stim_test = np.zeros((N,P))
+    for m in range(stim.shape[1]):
+        stim_test[:,m] = flip_patterns_cluster(stim[:,m],0.1)
+    #h1,h1_test = random_proj_generic_test(H,stim,stim_test,th)
+    h1,h1_test = generate_order_one_mixed_test(H,N,M,P,K,0.1,0.1)
+    h2, h2_test = generate_order_two_mixed_test(H,N,M,P,K,0.1,0.1) 
+    h3, h3_test = generate_order_full_mixed_test(H,N,M,P,K,0.1,0.1)
+    cod = erf1(th)
+    print("theoretical coding is",cod)
+    cods[i] = cod
+    o = 0.5*(np.sign(h1 - th) + 1) - cod
+    o_test = 0.5*(np.sign(h1_test - th) + 1) - cod
+    o2 = 0.5*(np.sign(h2 - th) + 1) - cod
+    o2_test = 0.5*(np.sign(h2_test - th) + 1) - cod
+    o3 = 0.5*(np.sign(h3 - th) + 1) - cod
+    o3_test = 0.5*(np.sign(h3_test - th) + 1) - cod
+    
+    f_emp1 = compute_sparsity(o[:,np.random.randint(P)])
+    f_emp2 = compute_sparsity(o2[:,np.random.randint(P)])
+    f_emp3 = compute_sparsity(o3[:,np.random.randint(P)])
+    
+    #print("empirical f's",f_emp1,f_emp2,f_emp3)
+    
+    d1_list = [] 
+    d2_list = []
+    d3_list = []
+    
+    for p in range(o.shape[1]):
+        d1 = compute_delta_out(o[:,p],o_test[:,p])
+        d1_list.append(d1)
+        d2 = compute_delta_out(o2[:,p],o2_test[:,p])
+        d2_list.append(d2)
+        d3 = compute_delta_out(o3[:,p],o3_test[:,p])
+        d3_list.append(d3)
+    delta_ms_one[i] = np.mean(d1_list)/ (2*cod*(1-cod))
+    print("d1 is",np.mean(d1_list)/ (2*cod*(1-cod)))
+    delta_ms_two[i] = np.mean(d2_list)/ (2*cod*(1-cod))
+    delta_ms_three[i] = np.mean(d3_list)/ (2*cod*(1-cod))
+    eo_emp = compute_emp_excess_over(o,H,3*N,th)
+    eo_emps_one[i] = eo_emp
+    eo_emp2 = compute_emp_excess_over(o2,H,3*N,th)
+    eo_emps_two[i] = eo_emp2
+    eo_emp3 = compute_emp_excess_over(o3,H,3*N,th)
+    eo_emps_three[i] = eo_emp3
+    
+    
+    ds_eff1 = 0.1
+    ds_eff2 = (1/3)*(0.2)
+    ds_eff3 = (1/3)*(0.5)
+    
+    delta_theory_one[i] = erf_full(th,ds_eff1,cod)
+    delta_theory_two[i] = erf_full(th,ds_eff1,cod)
+    delta_theory_three[i] = erf_full(th,ds_eff1,cod)
+
+
+plt.figure()
+plt.title(r'Cluster size vs. $\mathcal{M}$,slightly different deltas',fontsize=12)
+plt.plot(cods,delta_ms_one,'s',color='blue',label=r'$\mathcal{M}=1$')
+plt.plot(cods,delta_theory_one,'--',color='lightblue',label=r'Theory')
+plt.plot(cods,delta_ms_two,'s',color='red',label=r'$\mathcal{M}=2$')
+plt.plot(cods,delta_theory_two,'--',color='lightcoral',label=r'Theory')
+plt.plot(cods,delta_ms_three,'s',color='green',label=r'$\mathcal{M}=3$')
+plt.plot(cods,delta_theory_three,'--',color='lightgreen',label=r'Theory')
+plt.xlabel(r'$f$',fontsize=14)
+plt.ylabel(r'$\Delta m$',fontsize=14)
+plt.legend()
+plt.show()
+
+
+
+
 
 ######BELOW IS DIMENSIONALITY + HEBBIAN LEARNING##########
 

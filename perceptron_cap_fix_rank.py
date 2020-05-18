@@ -12,7 +12,6 @@ from numpy import linalg as LA
 import random
 import scipy as sp
 from scipy.optimize import linprog
-import pulp
 from matplotlib.lines import Line2D
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 

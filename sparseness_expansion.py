@@ -300,30 +300,60 @@ def compute_err_and_snr(N,P,H,d_in,th,spars=False):
     err_theory = erf1(np.sqrt(snr_theory))
 
     return err_mean, err_std, err_theory, f
+
+
+###PLOT CLUSTER SIZE
+# N=100
+# P=100
+# H=2100
+# ds = 0.1
+# th = 3.0
+# stim = make_patterns(N,P)
+# patts_test = np.zeros((N,P))
+
+# for i in range(stim.shape[0]):
+#     patts_test[:,i] = flip_patterns_cluster(stim[:,i],ds)
+    
+# h,h_test = random_proj_generic_test(H,stim,patts_test,th)
+# o = 0.5*(np.sign(h)+1)
+# o_test = 0.5*(np.sign(h_test)+1)
+# cod = compute_sparsity(o[:,np.random.randint(P)])
+
+# d_emps_list = []
+# for i in range(stim.shape[1]):
+#     d_emp = compute_delta_out(o[:,i],o_test[:,i])
+#     d_emps_list.append(d_emp)
+
+# f = erf1(th)
+# print("f is",f)
+# d_emp_mean = np.mean(d_emps_list) / (2*f*(1-f))
+# d_theory = erf_full(th,ds,f)
+# # print("d_theory",d_theory)
+# print("d_emp",d_emp_mean)
                                      
 
 #Simulate sparse feed-forward network
-K=7
-N=100
-rat_in = K/N
-P=100
-stim = make_patterns(N,P)
-H=2000
-th=0.2
-h = random_proj_generic(H,stim,th,sparse=True)
-o = 0.5*(np.sign(h)+1)
-cod_emp = compute_sparsity(o[:,np.random.randint(P)])
-cod = erf1(th/(np.sqrt(rat_in)))
-print("cod_emp",cod_emp)
-print("cod",cod)
-
-pr_emp,pr_theory,fp = compute_pr_theory_sim(o-cod,th/np.sqrt(1),N)
-print("pr_emp",pr_emp)
-print("pr_theory",pr_theory)
-
-err_mean, err_std, err_theory, f = compute_err_and_snr(N,P,H,0.1,th,spars=True)
-print("theoretical error",err_theory)
-print("empirical error",err_mean)
+#K=7
+#N=100
+#rat_in = K/N
+#P=100
+#stim = make_patterns(N,P)
+#H=2000
+#th=0.2
+#h = random_proj_generic(H,stim,th,sparse=True)
+#o = 0.5*(np.sign(h)+1)
+#cod_emp = compute_sparsity(o[:,np.random.randint(P)])
+#cod = erf1(th/(np.sqrt(rat_in)))
+#print("cod_emp",cod_emp)
+#print("cod",cod)
+#
+#pr_emp,pr_theory,fp = compute_pr_theory_sim(o-cod,th/np.sqrt(1),N)
+#print("pr_emp",pr_emp)
+#print("pr_theory",pr_theory)
+#
+#err_mean, err_std, err_theory, f = compute_err_and_snr(N,P,H,0.1,th,spars=True)
+#print("theoretical error",err_theory)
+#print("empirical error",err_mean)
 
 
     
@@ -392,6 +422,10 @@ if run_dim_compare_sparse_dense:
     pr_dense_theory = np.zeros(len(ths))
     pr_sparse = np.zeros(len(ths))
     pr_sparse_theory = np.zeros(len(ths))
+    errors_dense = np.zeros(len(ths))
+    errors_dense_theory = np.zeros(len(ths))
+    errors_sparse = np.zeros(len(ths))
+    errors_sparse_theory = np.zeros(len(ths))
     for i,th in enumerate(ths):
         h1 = random_proj_generic(H,stim,th,sparse=False)
         h2 = random_proj_generic(H,stim,th,sparse=True)
@@ -408,28 +442,39 @@ if run_dim_compare_sparse_dense:
         #hs[i] = h
         cods1[i] = cod1
         cods2[i] = cod2
-        eo1 = (excess_over_theory(th,cod1))**(2)
-        eo2 = (excess_over_theory(th/(np.sqrt(K/N)),cod2))**(2)
-        excess_over_one[i] = eo1
-        #print("eo1",eo1)
-        excess_over_two[i] = eo2
-        print("eo2",eo2)
         
-        pr1_emp, pr1_theory, fp1 = compute_pr_theory_sim(o1 - cod1,th,N)
-        pr2_emp, pr2_theory, fp2 = compute_pr_theory_sim(o2 - cod2,th/(np.sqrt(1)),N)
-        print("fp2",fp2/(cod2*(1-cod2))**(2))
-        print("pr_emp2",pr2_emp)
-        print("pr_theory2",pr2_theory)
+        err_mean, err_std, err_theory, f = compute_err_and_snr(N,P,H,0.1,th,spars=False)
+        err_mean2, err_std2, err_theory2, f2 = compute_err_and_snr(N,P,H,0.1,th/np.sqrt(K/N),spars=True)
         
-        denom_calc = (1/(H*P)) + 1/P + 1/H + (1/N)*(fp2/((cod2*(1-cod2))**(2)))
-        #print("rescaled fp2",fp2/(cod2*(1-cod2))**(2))
-        #print("denom_calc",denom_calc)
-        #print("pr_calc2",1/denom_calc)
+        errors_dense[i] = err_mean
+        errors_dense_theory[i] = err_theory
+        errors_sparse[i] = err_mean2
+        print("error sparse",err_mean2)
+        errors_sparse_theory[i] = err_theory2
+        print("error sparse theory",err_theory2)
         
-        pr_dense[i] = pr1_emp
-        pr_dense_theory[i] = pr1_theory
-        pr_sparse[i] = pr2_emp
-        pr_sparse_theory[i] = pr2_theory
+#        eo1 = (excess_over_theory(th,cod1))**(2)
+#        eo2 = (excess_over_theory(th/(np.sqrt(K/N)),cod2))**(2)
+#        excess_over_one[i] = eo1
+#        #print("eo1",eo1)
+#        excess_over_two[i] = eo2
+#        print("eo2",eo2)
+#        
+#        pr1_emp, pr1_theory, fp1 = compute_pr_theory_sim(o1 - cod1,th,N)
+#        pr2_emp, pr2_theory, fp2 = compute_pr_theory_sim(o2 - cod2,th/(np.sqrt(1)),N)
+#        print("fp2",fp2/(cod2*(1-cod2))**(2))
+#        print("pr_emp2",pr2_emp)
+#        print("pr_theory2",pr2_theory)
+#        
+#        denom_calc = (1/(H*P)) + 1/P + 1/H + (1/N)*(fp2/((cod2*(1-cod2))**(2)))
+#        #print("rescaled fp2",fp2/(cod2*(1-cod2))**(2))
+#        #print("denom_calc",denom_calc)
+#        #print("pr_calc2",1/denom_calc)
+#        
+#        pr_dense[i] = pr1_emp
+#        pr_dense_theory[i] = pr1_theory
+#        pr_sparse[i] = pr2_emp
+#        pr_sparse_theory[i] = pr2_theory
       
     #colors = itertools.cycle(('green','blue','red','black'))
     #colors_ver = itertools.cycle(('lightgreen','lightskyblue','lightcoral','grey'))  
@@ -437,17 +482,17 @@ if run_dim_compare_sparse_dense:
     plt.figure()
     ax1 = plt.subplot(121)
     ax1.set_title('Dense connectivity',fontsize=14)
-    ax1.plot(cods1,pr_dense,'s',color='blue')
-    ax1.plot(cods1,pr_dense_theory,'--',label=r'Theory',color='lightblue')
+    ax1.plot(cods1,errors_dense,'s-',color='blue')
+    #ax1.plot(cods1,errors_dense_theory,'--',label=r'Theory',color='lightblue')
     ax1.set_xlabel(r'$f$',fontsize=16)
-    ax1.set_ylabel(r'$\mathcal{D}$',fontsize=16)
+    ax1.set_ylabel(r'$\epsilon$',fontsize=16)
     
     ax2 = plt.subplot(122)
     ax2.set_title('Sparse connectivity',fontsize=14)
-    ax2.plot(cods2,pr_sparse,'s',color='black')
-    ax2.plot(cods2,pr_sparse_theory,'--',label=r'Theory',color='grey')
+    ax2.plot(cods2,errors_sparse,'s-',color='black')
+    #ax2.plot(cods2,errors_sparse_theory,'--',label=r'Theory',color='grey')
     ax2.set_xlabel(r'$f$',fontsize=16)
-    ax2.set_ylabel(r'$\mathcal{D}$',fontsize=16)
+    ax2.set_ylabel(r'$\epsilon$',fontsize=16)
     
     plt.legend()
     plt.tight_layout()

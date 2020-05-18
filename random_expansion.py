@@ -18,7 +18,6 @@ from scipy.special import comb
 from scipy.special import binom
 import seaborn as sns
 import itertools
-import pulp
 from matplotlib.lines import Line2D
 
 
