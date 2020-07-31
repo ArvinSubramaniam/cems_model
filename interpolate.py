@@ -286,6 +286,18 @@ def generate_order_one_mixed_test(H,N,M,P,K,d_stim,d_cont):
     
     return h_big, h_big_test
 
+def compute_cluster_size_theory(ds,dp,th):
+    cod = erf1(th)
+    ds_eff_full = (1/3)*(ds + 2*dp)
+    ds_eff1 = (1/2)*(ds + dp)
+    
+    ds1 = (1/3)*(erf_full(th,ds,cod) + 2*erf_full(th,dp,cod))
+    ds2 = (1/3)*(2*erf_full(th,ds_eff1,cod) + erf_full(th,dp,cod))
+    ds3 = erf_full(th,ds_eff_full,cod)
+    
+    return ds1, ds2, ds3
+     
+
 
 ###To get rank as a function of sparsity
 # N=100
@@ -318,102 +330,96 @@ def generate_order_one_mixed_test(H,N,M,P,K,d_stim,d_cont):
 # plt.legend()
 # plt.show()
     
-
 ####PLOT OF DELTA M
-N=100
-M=100
-P=20
-K=4
-H=2100
-#thress = np.linspace(0.1,3.1,20)
-thress = [0.8]
-cods = np.zeros(len(thress))
-eo_emps_one =  np.zeros(len(thress))
-eo_theorys_one = np.zeros(len(thress))
-eo_emps_two =  np.zeros(len(thress))
-eo_theorys_two = np.zeros(len(thress))
-eo_emps_three =  np.zeros(len(thress))
-eo_theorys_three = np.zeros(len(thress))
-delta_ms_one = np.zeros(len(thress))
-delta_ms_two = np.zeros(len(thress))
-delta_ms_three = np.zeros(len(thress))
-
-delta_theory_one =  np.zeros(len(thress))
-delta_theory_two =  np.zeros(len(thress))
-delta_theory_three = np.zeros(len(thress))
-
-for i,th in enumerate(thress):
-    stim = make_patterns(N,P)
-    stim_test = np.zeros((N,P))
-    for m in range(stim.shape[1]):
-        stim_test[:,m] = flip_patterns_cluster(stim[:,m],0.1)
-    #h1,h1_test = random_proj_generic_test(H,stim,stim_test,th)
-    h1,h1_test = generate_order_one_mixed_test(H,N,M,P,K,0.1,0.1)
-    h2, h2_test = generate_order_two_mixed_test(H,N,M,P,K,0.1,0.1) 
-    h3, h3_test = generate_order_full_mixed_test(H,N,M,P,K,0.1,0.1)
-    cod = erf1(th)
-    print("theoretical coding is",cod)
-    cods[i] = cod
-    o = 0.5*(np.sign(h1 - th) + 1) - cod
-    o_test = 0.5*(np.sign(h1_test - th) + 1) - cod
-    o2 = 0.5*(np.sign(h2 - th) + 1) - cod
-    o2_test = 0.5*(np.sign(h2_test - th) + 1) - cod
-    o3 = 0.5*(np.sign(h3 - th) + 1) - cod
-    o3_test = 0.5*(np.sign(h3_test - th) + 1) - cod
+run_delta_m = False
+if run_delta_m:
+    N=100
+    M=100
+    P=20
+    K=4
+    H=2100
     
-    f_emp1 = compute_sparsity(o[:,np.random.randint(P)])
-    f_emp2 = compute_sparsity(o2[:,np.random.randint(P)])
-    f_emp3 = compute_sparsity(o3[:,np.random.randint(P)])
+    dp = 0.1
     
-    #print("empirical f's",f_emp1,f_emp2,f_emp3)
+    thress = np.linspace(0,3.1,20)
+    ds_list = [0.001]
+    cods = np.zeros((len(thress)))
     
-    d1_list = [] 
-    d2_list = []
-    d3_list = []
-    
-    for p in range(o.shape[1]):
-        d1 = compute_delta_out(o[:,p],o_test[:,p])
-        d1_list.append(d1)
-        d2 = compute_delta_out(o2[:,p],o2_test[:,p])
-        d2_list.append(d2)
-        d3 = compute_delta_out(o3[:,p],o3_test[:,p])
-        d3_list.append(d3)
-    delta_ms_one[i] = np.mean(d1_list)/ (2*cod*(1-cod))
-    print("d1 is",np.mean(d1_list)/ (2*cod*(1-cod)))
-    delta_ms_two[i] = np.mean(d2_list)/ (2*cod*(1-cod))
-    delta_ms_three[i] = np.mean(d3_list)/ (2*cod*(1-cod))
-    eo_emp = compute_emp_excess_over(o,H,3*N,th)
-    eo_emps_one[i] = eo_emp
-    eo_emp2 = compute_emp_excess_over(o2,H,3*N,th)
-    eo_emps_two[i] = eo_emp2
-    eo_emp3 = compute_emp_excess_over(o3,H,3*N,th)
-    eo_emps_three[i] = eo_emp3
-    
-    
-    ds_eff1 = 0.1
-    ds_eff2 = (1/3)*(0.2)
-    ds_eff3 = (1/3)*(0.5)
-    
-    delta_theory_one[i] = erf_full(th,ds_eff1,cod)
-    delta_theory_two[i] = erf_full(th,ds_eff1,cod)
-    delta_theory_three[i] = erf_full(th,ds_eff1,cod)
+    delta_emps_one = np.zeros((len(ds_list),len(thress)))
+    delta_theorys_one = np.zeros((len(ds_list),len(thress)))
 
+    delta_emps_two = np.zeros((len(ds_list),len(thress)))
+    delta_theorys_two = np.zeros((len(ds_list),len(thress)))
+    
+    delta_emps_three = np.zeros((len(ds_list),len(thress)))
+    delta_theorys_three = np.zeros((len(ds_list),len(thress)))
 
-plt.figure()
-plt.title(r'Cluster size vs. $\mathcal{M}$,slightly different deltas',fontsize=12)
-plt.plot(cods,delta_ms_one,'s',color='blue',label=r'$\mathcal{M}=1$')
-plt.plot(cods,delta_theory_one,'--',color='lightblue',label=r'Theory')
-plt.plot(cods,delta_ms_two,'s',color='red',label=r'$\mathcal{M}=2$')
-plt.plot(cods,delta_theory_two,'--',color='lightcoral',label=r'Theory')
-plt.plot(cods,delta_ms_three,'s',color='green',label=r'$\mathcal{M}=3$')
-plt.plot(cods,delta_theory_three,'--',color='lightgreen',label=r'Theory')
-plt.xlabel(r'$f$',fontsize=14)
-plt.ylabel(r'$\Delta m$',fontsize=14)
-plt.legend()
-plt.show()
-
-
-
+    for j,th in enumerate(thress):
+        cod = erf1(th)
+        cods[j] = cod
+        
+        delta_mat = np.zeros((len(ds_list),3))
+        
+        
+        for i, ds in enumerate(ds_list):
+            h1,h1_test = generate_order_one_mixed_test(H,N,M,P,K,ds,dp)
+            h2, h2_test = generate_order_two_mixed_test(H,N,M,P,K,ds,dp) 
+            h3, h3_test = generate_order_full_mixed_test(H,N,M,P,K,ds,dp)
+            o = 0.5*(np.sign(h1 - th) + 1) - cod
+            o_test = 0.5*(np.sign(h1_test - th) + 1) - cod
+            o2 = 0.5*(np.sign(h2 - th) + 1) - cod
+            o2_test = 0.5*(np.sign(h2_test - th) + 1) - cod
+            o3 = 0.5*(np.sign(h3 - th) + 1) - cod
+            o3_test = 0.5*(np.sign(h3_test - th) + 1) - cod
+            
+            d1_list = []
+            d2_list = []
+            d3_list = []
+            
+            for p in range(o.shape[1]):
+                d1 = compute_delta_out(o[:,p],o_test[:,p])
+                d1_list.append(d1)
+                d2 = compute_delta_out(o2[:,p],o2_test[:,p])
+                d2_list.append(d2)
+                d3 = compute_delta_out(o3[:,p],o3_test[:,p])
+                d3_list.append(d3)
+                
+            delta_emps_one[i,j] = np.mean(d1_list)/ compute
+            delta_emps_two[i,j] = np.mean(d2_list)/ (2*cod*(1-cod))
+            delta_emps_three[i,j] = np.mean(d3_list)/ (2*cod*(1-cod))
+            
+            ds_eff_full = (1/3)*(ds + 2*dp)
+            ds_eff1 = (1/2)*(ds + dp)
+            
+            ds1, ds2, ds3 = compute_cluster_size_theory(ds,dp,cod)
+            
+            #delta_theorys_one[i,j] = erf_full(th,ds_eff1,cod)  
+            delta_theorys_one[i,j] = ds1
+            
+            #delta_theorys_two[i,j] = erf_full(th,ds_eff_full,cod)
+            delta_theorys_two[i,j] = ds2
+            
+            delta_theorys_three[i,j] = ds3
+        
+    
+    plt.figure()
+    x_list = [1,2,3]
+    colors = itertools.cycle(('blue','red','black'))
+    colors_ver = itertools.cycle(('lightskyblue','lightcoral','grey'))
+    plt.title(r'$\Delta \xi = 0$, $\Delta \phi=0.1$',fontsize=12)
+    #for i,ds in enumerate(ds_list):
+        #clr = next(colors)
+        #plt.plot(x_list,delta_mat[i,:],'s-',color=clr,label=r'$\Delta \xi={}$'.format(ds))
+    plt.plot(cods,delta_emps_one[0,:],'s',color='blue',label=r'$\mathcal{M}=1$')
+    plt.plot(cods,delta_theorys_one[0,:],'--',color='lightblue',label=r'Theory')
+    plt.plot(cods,delta_emps_two[0,:],'s',color='red',label=r'$\mathcal{M}=2$')
+    plt.plot(cods,delta_theorys_two[0,:],'--',color='lightcoral',label=r'Theory')
+    plt.plot(cods,delta_emps_three[0,:],'s',color='green',label=r'$\mathcal{M}=3$')
+    plt.plot(cods,delta_theorys_three[0,:],'--',color='lightgreen',label=r'Theory')
+    plt.xlabel(r'$f$',fontsize=14)
+    plt.ylabel(r'$\Delta m$',fontsize=14)
+    plt.legend()
+    plt.show()
 
 
 ######BELOW IS DIMENSIONALITY + HEBBIAN LEARNING##########
@@ -596,7 +602,7 @@ def compute_excess_over_multimod(N,M,P,K,th):
     return denom2
 
 
-def hebbian_mixed_layer_interpolate(H,N,M,P,K,th,index=3,ds=0.1,dc=0.1):
+def hebbian_mixed_layer_interpolate(H,N,M,P,K,th,index=3,ds=0.1,dc=0.):
     """
     comp_num: True if want to compare "numerical theory" to theory
     """
@@ -651,16 +657,14 @@ def hebbian_mixed_layer_interpolate(H,N,M,P,K,th,index=3,ds=0.1,dc=0.1):
     d_out_mean = np.mean(d_outs)
     print("d_out is",d_out_mean)
 
+    ds1,ds2,ds3 = compute_cluster_size_theory(ds,dc,th)
+
     if index == 1:
-        erf_in1 = erf_full(th,ds,erf)
-        erf_in2 = erf_full(th,dc,erf)
-        d_theory = (1/3)*erf_in1 + (2/3)*erf_in2
+        d_theory = ds1
     elif index == 2:
-        d_in = 0.5*(ds + dc)
-        d_theory = erf_full(th,d_in,erf)
+        d_theory = ds2
     elif index == 3:
-        d_in = (1/3)*(ds + 2*dc)
-        d_theory = erf_full(th,d_in,erf)    
+        d_theory = ds3
     
     d_theory_out = d_theory
     
@@ -676,16 +680,6 @@ def hebbian_mixed_layer_interpolate(H,N,M,P,K,th,index=3,ds=0.1,dc=0.1):
     err_theory = erf1(snr_in**(0.5))
     
     return snr, err_mean, err_std, err_theory,f, q_theory_in, o_in
-
-#N=100
-#M=100
-#P=50
-#K=2
-#H=2000
-#th=0.1
-#snr, err_mean, err_std, err_theory, cod, fp, o = hebbian_mixed_layer_interpolate(H,N,M,P,K,th,index=3,ds=0.01,dc=0.01)
-#print("empirical error",err_mean)
-#print("theoretical error",err_theory)
 
 
 run_dimensionality = False

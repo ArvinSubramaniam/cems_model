@@ -259,7 +259,7 @@ def compute_err_and_snr(N,P,H,d_in,th,spars=False):
         o = np.sign(h)
         o_test = np.sign(h_test)
         f = compute_sparsity(o_spars[:,np.random.randint(P)])
-        print("coding",f)
+        #print("coding",f)
         
         o_test_spars = 0.5*(np.sign(h_test)+1)
 
@@ -281,10 +281,10 @@ def compute_err_and_snr(N,P,H,d_in,th,spars=False):
         
         d_out_mean = np.mean(d_outs)
         d_std = np.std(d_outs)
-        print("d_out_mean",d_out_mean)
+        #print("d_out_mean",d_out_mean)
         
         d_out_theory = erf_full(th,d_in,f_in)
-        print("d_out theory",d_out_theory)
+        #print("d_out theory",d_out_theory)
         
         err = (len(np.where(np.asarray(stabs)<0)[0]))/(len(stabs))
         errors[j] = err
@@ -293,13 +293,25 @@ def compute_err_and_snr(N,P,H,d_in,th,spars=False):
     err_std = np.std(errors)
   
     numer_theory = (1 - d_out_theory)
-    denom_theory = P/H + (P/N) * excess_over_theory(th,f_in)**(2)
+    #th_in = th/(np.sqrt(1 - d_in))
+    th_in = th
+    denom_theory = P/H + (P/N) * excess_over_theory(th_in,f_in)**(2)
     print("excess over before divided by f",(1/N)*excess_over_theory(th,f_in)**(2) * (f_in*(1-f_in))**(2))
   
     snr_theory = (numer_theory**(2))/denom_theory
     err_theory = erf1(np.sqrt(snr_theory))
 
     return err_mean, err_std, err_theory, f
+
+
+# N=100
+# P=100
+# H=2100
+# ds = 0.2
+# th = 0.8
+# err_mean, err_std, err_theory, f = compute_err_and_snr(N,P,H,ds,th)
+# print("theoretical error is",err_theory)
+# print("empirical error is",err_mean)
 
 
 ###PLOT CLUSTER SIZE
