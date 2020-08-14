@@ -10,7 +10,6 @@ from sparseness_expansion import *
 import random as random
 
 
-
 def generate_hetergeneous(H,N,P,K,p1,p2,p3,d_stim,d_cont):
     """
     Generates mixed layer activations of a heterogeneous mixing 
@@ -293,6 +292,51 @@ def compute_excess_over_hetero(N,P,K,th):
     prob_prefact = 1
     
     return prob_prefact * excess_over_structured
+
+gaussian_func_2dim_onehalf = lambda y,x: (1/(2*np.pi))*np.exp(-(1./2)*(x**(2) + y**(2)))
+
+def two_dim_integral_thres(t_in):
+    """
+    Parameters
+    ----------
+    t_phi : Either t_phi or t_xi 
+
+    """
+    res = integrate.dblquad(gaussian_func_2dim_onehalf, t_in, np.inf, lambda x: th, lambda x: np.inf)
+    return res[0]
+
+def func_3dim(x,y,p):
+    exp_ = np.exp(-(1./2)*(x**(2) + y**(2)) + p*x*y)
+    denom = (1/(2*np.pi))
+    return denom * exp_
+
+def func_3dim_g(x,y,p):
+    exp_ = x*y*np.exp(-(1./2)*(x**(2) + y**(2)) + p*x*y)
+    denom = (1/(2*np.pi))
+    return denom * exp_
+
+def two_dim_i_integral(t_in,p):
+    """
+    Parameters
+    ----------
+    t_in : Either t_phi or t_xi 
+    p: Peak 
+
+    """
+    res = integrate.dblquad(func_3dim, t_in, np.inf, lambda x: t_in, lambda x: np.inf,args=(p,))
+    return res[0]
+
+def two_dim_g_integral(t_in,p):
+    """
+    Parameters
+    ----------
+    t_in : Either t_phi or t_xi 
+    p: Peak 
+
+    """
+    res = integrate.dblquad(func_3dim_g, t_in, np.inf, lambda x: t_in, lambda x: np.inf,args=(p,))
+    return res[0]
+    
     
 def hebbian_mixed_layer_heterogeneous(H,N,P,K,th,p1,p2,p3,ds=0.1,dc=0.):
     """
@@ -351,42 +395,100 @@ def hebbian_mixed_layer_heterogeneous(H,N,P,K,th,p1,p2,p3,ds=0.1,dc=0.):
     alpha = Peff/H
     
     #Get effective qtheory
-    q2 = erf*(1-erf) #erf = f 
+    f_one_minus = erf*(1-erf) #erf = f 
+    
+    #Probabilities in theory
+    q1 = (K-1)/(Peff-1)
+    q2 = (P-1)/(Peff-1)
+    
+    #Peaks
+    p_xi = (1/2)*(1 - ds)
+    p_phi = (1/2)*(1 - dc)
+    
+    #Thresholds
+    sqrt_xi = np.sqrt(1 - p_xi**(2))
+    sqrt_phi = np.sqrt(1 - p_phi**(2))
+    t_xi = th/(sqrt_xi)
+    t_phi = th/(sqrt_phi)
+    print("thresholds",t_phi,t_xi)
+    print("BELOW COD!")
     
     size1 = erf_full(th,ds,erf)
     size2 = erf_full(th,dc,erf)
     ds_eff = 0.5*(ds + dc)
     size3 = erf_full(th,ds_eff,erf)
     
+    #Get G functions
+    g_func_generic = (1/(2*np.pi)) * np.exp(-th**(2))
+    #g_func_xi = (1/(2*np.pi)) * np.exp(-t_xi**(2))
+    #g_func_phi = (1/(2*np.pi)) * np.exp(-t_phi**(2))
+    
+    g_func_xi = two_dim_g_integral(t_xi,p_xi)
+    g_func_phi = two_dim_g_integral(t_phi,p_phi)
+    
     eo_xi =  (1/N)*excess_over_theory(th,erf)**(2)
     eo_phi = eo_xi
-    eo_cross = (1/(2*N))*excess_over_theory(th,erf)**(2)
+    eo_t_phi = (1/(4*N)) * g_func_phi**(2)
+    eo_t_xi = (1/(4*N)) * g_func_xi**(2)
+    eo_cross = (1/((2*np.pi)**(2))) * (np.exp(-2*th**(2))) * (1/N)
+    eo_sqrt_phi_inter = (1/(2*N)) * np.exp(-th**(2)) * g_func_phi
+    eo_sqrt_xi_inter = (1/(2*N)) * np.exp(-th**(2)) * g_func_xi
+    eo_cross_inter = (1/(2*N)) * (1/((2*np.pi)**(2))) * (np.exp(-2*th**(2)))
     
     f=erf
-    #Get the R functions -- > this comes from Eq. 15
-    r_xi = q2*(1-size1)
-    r_phi = q2*(1-size2)
     
-    part3_xi = (1/(q2**(2)))*p1*r_xi*(K-1)
-    part3_phi = (1/(q2**(2)))*p2*(P-1)*r_phi
-    part3 = (1/H)*(Peff + (2*f - 1)**(2) * (part3_xi + part3_phi)) #H = N_{c}
+    #Get the two dimensional integrals
+    i_phi = two_dim_i_integral(t_phi,p_phi)
+    i_xi = two_dim_i_integral(t_xi,p_xi)
+    
+    
+    #Get the R functions -- > this comes from Eq. 15
+    r_xi = f_one_minus*(1-size1)
+    r_phi = f_one_minus*(1-size2)
+    r_mixed = (q1)*(sqrt_xi)*(i_xi) + (q2)*(sqrt_phi)*(i_phi)  + (1-q1-q2)*f**(2)
+
+
+    part3_one = (2*f**(3) - 3*f**(4))/(f_one_minus**(2))
+    part3_xi = (1/(f_one_minus**(2)))*p1*r_xi*q1
+    part3_phi = (1/(f_one_minus**(2)))*p2*q2*r_phi
+    part3_mixed = (1/(f_one_minus**(2)))*p3*r_mixed
+    part3 = (Peff/H)*(part3_one + (2*f - 1)**(2) * (part3_xi + part3_phi + part3_mixed)) #H = N_{c}
     print("part3",part3)
     
-    part4_xi_1 = ((1/q2)*r_xi*p1)**(2) * (K-1)
-    part4_xi_eo = (p1)**(2) * eo_xi * (Peff - K + 1)
-    part4_phi_1 = ((1/q2)*r_phi*p2)**(2) * (P-1)
-    part4_phi_eo = (p2)**(2) * eo_phi * (Peff - P + 1)
-    part4_mixed = p3**(2) * eo_cross
+    #Terms for intra part
+    part4_xi_1 = ((1/f_one_minus)*r_xi*p1)**(2) * q1
+    part4_xi_eo = (p1)**(2) * eo_xi * (1-q1)
+    part4_phi_1 = ((1/f_one_minus)*r_phi*p2)**(2) * q2
+    part4_phi_eo = (p2)**(2) * eo_phi * (1-q2)
     
-    i4_intra = part4_xi_1 + part4_xi_eo + part4_phi_1 + part4_phi_eo + part4_mixed
-    print("i4 intra",i4_intra)
+    #Part 4 intra for mixed terms
+    part4_mixed_four_pt = (q1)*((sqrt_xi*i_xi)**(2) + eo_t_xi) + (q2)*((sqrt_phi*i_phi)**(2) +  eo_t_phi) \
+                             + (1 - q1 - q2)*(f**(4) + eo_cross)
+    part4_mixed = p3**(2) * (part4_mixed_four_pt - 2*f**(2) * r_mixed + f**(4)) * (1/f_one_minus)**(2)
     
-    i4_inter = 2*p1*p2*(K-1)*(P-1)*(r_xi/(q2))*(r_phi/(q2))*(1/Peff)
+    i4_intra = Peff * (part4_xi_1 + part4_xi_eo + part4_phi_1 + part4_phi_eo + part4_mixed)
+    print("i4 intra",i4_intra) 
+    
+    ##Terms for inter part
+    part4_one_three = q1*(r_xi + f**(2))*sqrt_xi*(i_xi)  + \
+        (q2)*(f**(2) * sqrt_phi * (i_phi) + sqrt_phi*eo_sqrt_phi_inter) + (1-q1-q2)*(f**(4) + eo_cross_inter)\
+        - f**(2) * (q1*r_xi + r_mixed)
+    #part4_one_three = 0
+    #print("part4_1_3_parts",part4_one_three + f**(2) * (q1*r_xi + r_mixed),f**(2) * (q1*r_xi + r_mixed))
+    part4_two_three = q2*(r_phi + f**(2))*sqrt_phi*(i_phi)  + \
+        (q1)*(f**(2) * sqrt_xi * (i_xi) + sqrt_xi*eo_sqrt_xi_inter) + (1-q1-q2)*(f**(4) + eo_cross_inter)\
+        - f**(2) * (q2*r_phi + r_mixed)
+    #part4_two_three = 0
+    print("part 4's",part4_one_three,part4_two_three)
+    part4_one_two = 0*q1*q2*(r_xi*r_phi)
+    
+    part4_full = (1/f_one_minus)**(2) * (2*p1*p2*part4_one_two + 2*p1*p3*part4_one_three + 2*p2*p3*part4_two_three)
+    i4_inter = Peff * part4_full
     print("i4 inter",i4_inter)
 
     denom2 = part3 + i4_intra + i4_inter #Peff = PK
     
-    denom2_one = P/H + (P/N) * excess_over_theory(th,cod)**(2)
+    denom2_one = P/H + (P/N) * excess_over_theory(th,f)**(2)
     
     snr = (numer)/(denom2)
     
@@ -408,10 +510,10 @@ if run_readout_err:
     H=2100
     
     thress = np.linspace(0,3.1,20)
-    #thress = [2.1]
+    #thress = [1.1]
     ds_list = [0.1,0.3,0.5] #Actually a list of p1=p2, but p3 is determined
     #ds_list = [0.1]
-    p1 = 0.1
+    p1 = 0.10
     p2 = p1
     p3 = 1 - p1 - p2
     dc = 0.1

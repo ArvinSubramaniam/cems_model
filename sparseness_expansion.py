@@ -15,6 +15,7 @@ gaussian_func = lambda x: (1/np.sqrt(2*np.pi))*np.exp(-0.5*x**(2))
 
 def erf1(T):
     res = integrate.quad(gaussian_func, T, np.inf)
+    #print("IN ERR FUNC!")
     return res[0]
 
 ###ORDER OF X,Y IMPORTANT!
@@ -510,6 +511,26 @@ if run_dim_compare_sparse_dense:
     plt.tight_layout()
     plt.show()
 
+# t_in=0.8
+# th=t_in
+# function_2dim_peak = lambda y,x: (1/(2*np.pi))*np.exp(-(1./2)*(x**(2) + y**(2)))
+
+# def func_2dim_peak(p=0):
+#     exp_ = lambda y,x: np.exp(p*x*y)
+#     return exp_
+
+# def func_3dim(x,y,p):
+#     exp_ = np.exp(-(1./(2*(1-p**(2))))*(x**(2) + y**(2)) + p*x*y)
+#     denom = (1/(2*np.pi))
+#     return denom * exp_
+
+# def func_3dim_g(x,y,p):
+#     exp_ = x*y*np.exp(-(1./(2*(1-p**(2))))*(x**(2) + y**(2)) + p*x*y)
+#     denom = (1/(2*np.pi))
+#     return denom * exp_
 
 
+# p_in = 0.2
+# res = integrate.dblquad(func_3dim_g, t_in, np.inf, lambda x: th, lambda x: np.inf,args = (p_in,))
+# print(res[0])
 
